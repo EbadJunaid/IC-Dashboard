@@ -4,13 +4,16 @@ import { useState, useEffect, useCallback } from "react"
 import { TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { HelpTooltip } from "./HelpTooltip"
+import HelpTooltip from "./HelpTooltip"
+
 
 interface MetricData {
   timestamp: number
   value: number
   updateValue?: number
   queryValue?: number
+  conversionValue?: number
+  avgConversionValue?: number
   date: string
   displayDate: string
 }
@@ -18,7 +21,7 @@ interface MetricData {
 type TimeRange = "1D" | "7D" | "1M" | "3M" | "1Y" | "All"
 
 interface MetricsModuleProps {
-  type: "instructions" | "canisters" | "transactions" | "cycle-burn" | "finalization"
+  type: "instructions" | "canisters" | "transactions" | "cycle-burn" | "finalization" | "internet-identities" | "conversion-rate"
 }
 
 interface ModuleConfig {
@@ -36,12 +39,35 @@ interface ModuleConfig {
   gradientId: string
   updateGradientId?: string
   queryGradientId?: string
+  conversionGradientId?: string
+  avgConversionGradientId?: string
   hasEndParameter: boolean
   hasDualMetrics: boolean
   apiInterval: number
+  secondApiEndpoint?: string
+  secondApiKey?: string
+  conversionApiEndpoint?: string
+  avgConversionApiEndpoint?: string
 }
 
 const moduleConfigs: Record<string, ModuleConfig> = {
+  instructions: {
+    title: "Million Instructions Executed",
+    subtitle: "(Per second)",
+    unit: "MIEPs",
+    helpText: "The number of instructions executed per second across all canisters on the Internet Computer, measured in millions.",
+    apiEndpoint: "https://ic-api.internetcomputer.org/api/v3/metrics/instruction-rate",
+    apiKey: "instruction_rate",
+    fallbackValue: 58.698,
+    valueProcessor: (value: string) => Number.parseFloat(value) / 1000000,
+    valueFormatter: (value: number) => value.toFixed(3).replace(/\B(?=(\d{3})+(?!\d))/g, "'"),
+    tooltipFormatter: (value: number) => value.toFixed(2),
+    gradientId: "instructionGradient",
+    hasEndParameter: false,
+    hasDualMetrics: false,
+    apiInterval: 5000
+  },
+  
   canisters: {
     title: "Canister Smart Contracts",
     subtitle: "(Dapps or Code Units)",
@@ -56,25 +82,7 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     gradientId: "canisterGradient",
     hasEndParameter: false,
     hasDualMetrics: false,
-    apiInterval: 70000
-  },
-  
-  
-    instructions: {
-    title: "Million Instructions Executed",
-    subtitle: "(Per second)",
-    unit: "MIEPs",
-    helpText: "The number of instructions executed per second across all canisters on the Internet Computer, measured in millions.",
-    apiEndpoint: "https://ic-api.internetcomputer.org/api/v3/metrics/instruction-rate",
-    apiKey: "instruction_rate",
-    fallbackValue: 58.698,
-    valueProcessor: (value: string) => Number.parseFloat(value) / 1000000,
-    valueFormatter: (value: number) => value.toFixed(3).replace(/\B(?=(\d{3})+(?!\d))/g, "'"),
-    tooltipFormatter: (value: number) => value.toFixed(2),
-    gradientId: "instructionGradient",
-    hasEndParameter: false,
-    hasDualMetrics: false,
-    apiInterval: 60000
+    apiInterval: 10000
   },
   
   transactions: {
@@ -93,8 +101,9 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     queryGradientId: "queryGradient",
     hasEndParameter: true,
     hasDualMetrics: true,
-    apiInterval: 80000
+    apiInterval: 15000
   },
+  
   "cycle-burn": {
     title: "Cycle Burn Rate",
     subtitle: "",
@@ -103,12 +112,11 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     apiEndpoint: "https://ic-api.internetcomputer.org/api/v3/metrics/cycle-burn-rate",
     apiKey: "cycle_burn_rate",
     fallbackValue: 0.0664,
-    valueProcessor: (value: string) => Number.parseFloat(value) / 1000000000000, // Divide by 1 trillion for display
+    valueProcessor: (value: string) => Number.parseFloat(value) / 1000000000000,
     valueFormatter: (value: number) => value.toFixed(4),
-    tooltipFormatter: (value: number) => value.toFixed(4), // Show in trillions in tooltip
+    tooltipFormatter: (value: number) => value.toFixed(4),
     yAxisFormatter: (value: number) => {
-      // Convert to billions for Y-axis display
-      const billions = value * 1000; // Convert trillions back to billions
+      const billions = value * 1000;
       if (billions >= 1000) {
         return `${(billions / 1000).toFixed(1)}T`
       } else {
@@ -118,8 +126,9 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     gradientId: "cycleBurnGradient",
     hasEndParameter: true,
     hasDualMetrics: false,
-    apiInterval: 90000
+    apiInterval: 20000
   },
+  
   finalization: {
     title: "Finalization Rate",
     subtitle: "",
@@ -134,15 +143,81 @@ const moduleConfigs: Record<string, ModuleConfig> = {
     gradientId: "finalizationGradient",
     hasEndParameter: true,
     hasDualMetrics: false,
-    apiInterval: 100000
+    apiInterval: 25000
+  },
+  
+  "internet-identities": {
+    title: "Internet Identities",
+    subtitle: "",
+    unit: "",
+    helpText: "The total number of Internet Identities created on the Internet Computer.",
+    apiEndpoint: "https://ic-api.internetcomputer.org/api/v3/metrics/internet-identity-user-count",
+    apiKey: "internet_identity_user_count",
+    fallbackValue: 1111111,
+    valueProcessor: (value: string) => Number.parseInt(value),
+    valueFormatter: (value: number) => value.toLocaleString().replace(/,/g, "'"),
+    tooltipFormatter: (value: number) => value.toLocaleString(),
+    yAxisFormatter: (value: number) => {
+      const millions = value / 1000000;
+      // console.log("yep",millions);
+      return `${millions.toFixed(2)}M`
+    },
+    gradientId: "internetIdentitiesGradient",
+    hasEndParameter: true,
+    hasDualMetrics: false,
+    apiInterval: 1200000 // 20 minutes
+  },
+  
+  "conversion-rate": {
+    title: "Conversion Rate",
+    subtitle: "(ICP-TCYCLES)",
+    unit: "TCYCLES",
+    helpText: "This chart shows the conversion rate between ICP and Trillion Cycles (TCYCLES), as well as the 30-day moving average of the conversion rate. The Y-axis represents the amount of TCYCLES per ICP token. Cycles are the unit of measurement for resources consumed by canisters, such as processing, memory, storage, and network bandwidth. Since 1 TCYCLES always equals 1 XDR (Special Drawing Rights, a supplementary foreign exchange asset defined by the IMF), this chart effectively represents the ICP-XDR exchange rate. The average ICP-XDR rate over the preceding 30 days is used to compute monthly node provider rewards.",
+    apiEndpoint: "https://ic-api.internetcomputer.org/api/v3/icp-xdr-conversion-rates",
+    apiKey: "icp_xdr_conversion_rates",
+    fallbackValue: 3.8558,
+    valueProcessor: (value: string) => Number.parseFloat(value)/10000,
+    valueFormatter: (value: number) => value.toFixed(4),
+    tooltipFormatter: (value: number) => value.toFixed(4),
+    yAxisFormatter: (value: number) => {
+      return `${value.toFixed(1)}T`
+    },
+    gradientId: "conversionRateGradient",
+    conversionGradientId: "conversionGradient",
+    avgConversionGradientId: "avgConversionGradient",
+    hasEndParameter: true,
+    hasDualMetrics: true,
+    apiInterval: 20000, // 20 seconds
+    conversionApiEndpoint: "https://ic-api.internetcomputer.org/api/v3/icp-xdr-conversion-rates",
+    avgConversionApiEndpoint: "https://ic-api.internetcomputer.org/api/v3/avg-icp-xdr-conversion-rates"
   }
 }
+
+// Simple help tooltip component
+
+// const HelpTooltip = ({ content }: { content: string }) => (
+//   <div className="group relative inline-block">
+//     <div className="w-4 h-4 rounded-full bg-slate-600 text-white text-xs flex items-center justify-center cursor-help">
+//       ?
+//     </div>
+//     <div className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-slate-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 w-64">
+//       {content}
+//     </div>
+//   </div>
+// )
+
+
+
+
+
+
+
 
 const CustomTooltip = ({ active, payload, label, config }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     
-    if (config.hasDualMetrics && payload.length === 2) {
+    if (config.hasDualMetrics && config.title === "Transactions" && payload.length === 2) {
       return (
         <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-600 rounded-lg p-3 shadow-xl">
           <div className="space-y-1">
@@ -153,6 +228,22 @@ const CustomTooltip = ({ active, payload, label, config }: any) => {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-purple-400"></div>
               <span className="text-purple-400 text-sm">Query: {config.tooltipFormatter(data.queryValue || 0)}</span>
+            </div>
+          </div>
+          <p className="text-slate-300 text-sm mt-2">{data.displayDate}</p>
+        </div>
+      )
+    } else if (config.hasDualMetrics && config.title === "Conversion Rate" && payload.length === 2) {
+      return (
+        <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-600 rounded-lg p-3 shadow-xl">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+              <span className="text-cyan-400 text-sm">Current Rate: {config.tooltipFormatter(data.conversionValue || 0)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+              <span className="text-purple-400 text-sm">30-Day Moving Average: {config.tooltipFormatter(data.avgConversionValue || 0)}</span>
             </div>
           </div>
           <p className="text-slate-300 text-sm mt-2">{data.displayDate}</p>
@@ -170,14 +261,57 @@ const CustomTooltip = ({ active, payload, label, config }: any) => {
   return null
 }
 
+// Legend component for dual metrics
+const DualMetricsLegend = ({ config }: { config: ModuleConfig }) => {
+  if (config.title === "Transactions") {
+    return (
+      <div className="flex items-center gap-4 mt-2 mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+          <span className="text-cyan-400 text-sm">Update</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+          <span className="text-purple-400 text-sm">Query</span>
+        </div>
+      </div>
+    )
+  } else if (config.title === "Conversion Rate") {
+    return (
+      <div className="flex items-center gap-4 mt-2 mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+          <span className="text-cyan-400 text-sm">Current Rate</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+          <span className="text-purple-400 text-sm">30-Day Moving Average</span>
+        </div>
+      </div>
+    )
+  }
+  return null
+}
+
 export function MetricsModule({ type }: MetricsModuleProps) {
   const config = moduleConfigs[type]
-  const [currentValue, setCurrentValue] = useState(0)
+  
+  // Early return if config is not found
+  if (!config) {
+    return (
+      <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-4 md:p-6 text-white h-full shadow-2xl">
+        <div className="text-red-400">Invalid module type: {type}</div>
+      </div>
+    )
+  }
+
+  const [currentValue, setCurrentValue] = useState(config.fallbackValue)
   const [chartData, setChartData] = useState<MetricData[]>([])
   const [selectedRange, setSelectedRange] = useState<TimeRange>("1D")
   const [loading, setLoading] = useState(true)
   const [chartLoading, setChartLoading] = useState(false)
   const [yAxisTicks, setYAxisTicks] = useState<number[]>([])
+  const [initialLoad, setInitialLoad] = useState(false)
 
   // Function to calculate dynamic Y-axis ticks based on data
   const calculateYAxisTicks = useCallback((data: MetricData[]) => {
@@ -185,9 +319,10 @@ export function MetricsModule({ type }: MetricsModuleProps) {
     
     let values: number[] = []
     
-    if (config.hasDualMetrics) {
-      // For dual metrics, consider both update and query values separately (not stacked)
+    if (config.hasDualMetrics && config.title === "Transactions") {
       values = data.flatMap(d => [d.updateValue || 0, d.queryValue || 0])
+    } else if (config.hasDualMetrics && config.title === "Conversion Rate") {
+      values = data.flatMap(d => [d.conversionValue || 0, d.avgConversionValue || 0])
     } else {
       values = data.map(d => d.value)
     }
@@ -195,12 +330,10 @@ export function MetricsModule({ type }: MetricsModuleProps) {
     const minValue = Math.min(...values)
     const maxValue = Math.max(...values)
     
-    // Add some padding (10% on each side)
     const padding = (maxValue - minValue) * 0.1
     const adjustedMin = Math.max(0, minValue - padding)
     const adjustedMax = maxValue + padding
     
-    // Create 5 equal intervals
     const interval = (adjustedMax - adjustedMin) / 4
     const ticks = []
     
@@ -209,7 +342,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
     }
     
     return ticks
-  }, [config.hasDualMetrics])
+  }, [config.hasDualMetrics, config.title])
 
   // Custom tick formatter for Y-axis
   const formatYAxisTick = useCallback((value: number) => {
@@ -224,13 +357,13 @@ export function MetricsModule({ type }: MetricsModuleProps) {
     } else {
       return value.toFixed(0)
     }
-  }, [config])
+  }, [config.yAxisFormatter])
 
-  // Fetch chart data function - moved outside useEffect to avoid dependency issues
-  const fetchChartData = useCallback(async (range: TimeRange, currentEpoch?: number) => {
+  // Fetch chart data function
+  const fetchChartData = useCallback(async (range: TimeRange) => {
     setChartLoading(true)
     try {
-      const now = currentEpoch || Math.floor(Date.now() / 1000)
+      const now = Math.floor(Date.now() / 1000)
       let startTime: number
       let step: number
 
@@ -275,7 +408,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
         apiUrl += `&end=${now}`
       }
 
-      if (config.hasDualMetrics) {
+      if (config.hasDualMetrics && config.title === "Transactions") {
         const [updateResponse, queryResponse] = await Promise.all([
           fetch(`${apiUrl}&message_type=update`, { signal: controller.signal }),
           fetch(`${apiUrl}&message_type=query`, { signal: controller.signal })
@@ -315,6 +448,72 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                 value: totalValue,
                 updateValue: processedUpdateValue,
                 queryValue: processedQueryValue,
+                date: date.toISOString().split("T")[0],
+                displayDate:
+                  range === "1D" || range === "7D"
+                    ? `${date.toISOString().split("T")[0]}, ${date.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                        timeZone: "UTC",
+                      })} UTC`
+                    : date.toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      }),
+              }
+            })
+            .filter(Boolean)
+
+          if (chartPoints.length > 0) {
+            chartPoints.sort((a, b) => a.timestamp - b.timestamp)
+            setChartData(chartPoints)
+            setYAxisTicks(calculateYAxisTicks(chartPoints))
+          }
+        }
+      } else if (config.hasDualMetrics && config.title === "Conversion Rate") {
+        const conversionUrl = `${config.conversionApiEndpoint}?start=${Math.floor(startTime)}&step=${step}&end=${now}`
+        const avgConversionUrl = `${config.avgConversionApiEndpoint}?start=${Math.floor(startTime)}&step=${step}&end=${now}`
+        
+        const [conversionResponse, avgConversionResponse] = await Promise.all([
+          fetch(conversionUrl, { signal: controller.signal }),
+          fetch(avgConversionUrl, { signal: controller.signal })
+        ])
+
+        clearTimeout(timeoutId)
+
+        if (!conversionResponse.ok || !avgConversionResponse.ok) {
+          console.log(`Failed to fetch ${type} chart data:`, conversionResponse.status, avgConversionResponse.status)
+          return
+        }
+
+        const [conversionData, avgConversionData] = await Promise.all([
+          conversionResponse.json(),
+          avgConversionResponse.json()
+        ])
+
+        if (conversionData?.icp_xdr_conversion_rates && avgConversionData?.avg_icp_xdr_conversion_rates && 
+            Array.isArray(conversionData.icp_xdr_conversion_rates) && Array.isArray(avgConversionData.avg_icp_xdr_conversion_rates)) {
+          
+          const avgConversionMap = new Map(avgConversionData.avg_icp_xdr_conversion_rates.map(([timestamp, value]: [number, string]) => 
+            [timestamp, config.valueProcessor(value)]
+          ))
+
+          const chartPoints: MetricData[] = conversionData.icp_xdr_conversion_rates
+            .map(([timestamp, conversionValue]: [number, string]) => {
+              const processedConversionValue = config.valueProcessor(conversionValue)
+              const processedAvgConversionValue = avgConversionMap.get(timestamp) || 0
+
+              if (isNaN(processedConversionValue) || isNaN(timestamp)) return null
+
+              const date = new Date(timestamp * 1000)
+
+              return {
+                timestamp: timestamp * 1000,
+                value: processedConversionValue,
+                conversionValue: processedConversionValue,
+                avgConversionValue: processedAvgConversionValue,
                 date: date.toISOString().split("T")[0],
                 displayDate:
                   range === "1D" || range === "7D"
@@ -396,59 +595,71 @@ export function MetricsModule({ type }: MetricsModuleProps) {
     } finally {
       setChartLoading(false)
     }
-  }, [type, config, calculateYAxisTicks])
+  }, [type, config.apiEndpoint, config.hasEndParameter, config.hasDualMetrics, config.apiKey, config.valueProcessor, calculateYAxisTicks, config.title, config.conversionApiEndpoint, config.avgConversionApiEndpoint])
 
   // Fetch current metric value
-  useEffect(() => {
-    let isMounted = true
+  const fetchCurrentValue = useCallback(async () => {
+    try {
+      const response = await fetch(config.apiEndpoint)
 
-    const fetchCurrentValue = async () => {
-      try {
-        const response = await fetch(config.apiEndpoint)
-
-        if (!isMounted) return
-
-        if (!response.ok) {
-          console.log(`Failed to fetch current ${type}:`, response.status)
-          if (isMounted) setCurrentValue(config.fallbackValue)
-          return
-        }
-
-        const data = await response.json()
-
-        if (!isMounted) return
-
-        const current = data?.[config.apiKey]?.[1] 
-          ? config.valueProcessor(data[config.apiKey][1]) 
-          : config.fallbackValue
-
-        setCurrentValue(current)
-
-        // Load initial 1D chart data
-        if (chartData.length === 0) {
-          await fetchChartData("1D", data?.[config.apiKey]?.[0])
-        }
-      } catch (error) {
-        console.log(`Error fetching current ${type}:`, error)
-        if (isMounted) setCurrentValue(config.fallbackValue)
-      } finally {
-        if (isMounted) setLoading(false)
+      if (!response.ok) {
+        console.log(`Failed to fetch current ${type}:`, response.status)
+        setCurrentValue(config.fallbackValue)
+        return
       }
-    }
 
-    fetchCurrentValue()
+      const data = await response.json()
+
+      // Handle the JSON structure based on your examples
+      let current = config.fallbackValue
+      
+      if (data?.[config.apiKey]) {
+        if (Array.isArray(data[config.apiKey]) && data[config.apiKey].length >= 2) {
+          // Handle array format like [timestamp, "value"]
+          current = config.valueProcessor(data[config.apiKey][1])
+        } else if (Array.isArray(data[config.apiKey]) && data[config.apiKey].length > 0 && Array.isArray(data[config.apiKey][0])) {
+          // Handle nested array format like [[timestamp, "value"], ...]
+          const latestEntry = data[config.apiKey][data[config.apiKey].length - 1]
+          if (latestEntry && latestEntry.length > 1) {
+            current = config.valueProcessor(latestEntry[1])
+          }
+        }
+      }
+
+      setCurrentValue(current)
+    } catch (error) {
+      console.log(`Error fetching current ${type}:`, error)
+      setCurrentValue(config.fallbackValue)
+    }
+  }, [config.apiEndpoint, config.apiKey, config.valueProcessor, config.fallbackValue, type])
+
+  // Initial data fetch
+  useEffect(() => {
+    if (!initialLoad) {
+      const initializeData = async () => {
+        setLoading(true)
+        await fetchCurrentValue()
+        await fetchChartData("1D")
+        setInitialLoad(true)
+        setLoading(false)
+      }
+      
+      initializeData()
+    }
+  }, [initialLoad, fetchCurrentValue, fetchChartData])
+
+  // Set up intervals for current value updates
+  useEffect(() => {
+    if (!initialLoad) return
 
     const interval = setInterval(() => {
-      if (isMounted) {
-        fetchCurrentValue()
-      }
+      fetchCurrentValue()
     }, config.apiInterval)
 
     return () => {
-      isMounted = false
       clearInterval(interval)
     }
-  }, [type, config, fetchChartData, chartData.length])
+  }, [initialLoad, fetchCurrentValue, config.apiInterval])
 
   const handleRangeChange = useCallback((range: TimeRange) => {
     setSelectedRange(range)
@@ -489,6 +700,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
           {config.valueFormatter(currentValue)}
           {config.unit && <span className="text-lg text-slate-400 ml-2">{config.unit}</span>}
         </div>
+        {config.hasDualMetrics && <DualMetricsLegend config={config} />}
       </div>
 
       {/* Chart */}
@@ -505,7 +717,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                   <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3} />
                   <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.05} />
                 </linearGradient>
-                {config.hasDualMetrics && (
+                {config.hasDualMetrics && config.title === "Transactions" && (
                   <>
                     <linearGradient id="updateGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
@@ -516,6 +728,24 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                       <stop offset="100%" stopColor="#a855f7" stopOpacity={0.05} />
                     </linearGradient>
                   </>
+                )}
+                {config.hasDualMetrics && config.title === "Conversion Rate" && (
+                  <>
+                    <linearGradient id="conversionGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="avgConversionGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#a855f7" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#a855f7" stopOpacity={0.05} />
+                    </linearGradient>
+                  </>
+                )}
+                {config.title === "Internet Identities" && (
+                  <linearGradient id="internetIdentitiesGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.05} />
+                  </linearGradient>
                 )}
               </defs>
 
@@ -536,15 +766,14 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#9CA3AF", fontSize: 11 }}
-                width={35}
+                width={40}
                 domain={['dataMin', 'dataMax']}
               />
 
               <Tooltip content={<CustomTooltip config={config} />} />
 
-              {config.hasDualMetrics ? (
+              {config.hasDualMetrics && config.title === "Transactions" ? (
                 <>
-                  {/* Non-stacked areas - each starts from 0 */}
                   <Area
                     type="monotone"
                     dataKey="updateValue"
@@ -566,6 +795,39 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                     stroke="#a855f7"
                     strokeWidth={2.5}
                     fill="url(#queryGradient)"
+                    dot={false}
+                    activeDot={{
+                      r: 4,
+                      fill: "#ffffff",
+                      stroke: "#a855f7",
+                      strokeWidth: 2,
+                      style: { filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" },
+                    }}
+                  />
+                </>
+              ) : config.hasDualMetrics && config.title === "Conversion Rate" ? (
+                <>
+                  <Area
+                    type="monotone"
+                    dataKey="conversionValue"
+                    stroke="#22d3ee"
+                    strokeWidth={2.5}
+                    fill="url(#conversionGradient)"
+                    dot={false}
+                    activeDot={{
+                      r: 4,
+                      fill: "#ffffff",
+                      stroke: "#22d3ee",
+                      strokeWidth: 2,
+                      style: { filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" },
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="avgConversionValue"
+                    stroke="#a855f7"
+                    strokeWidth={2.5}
+                    fill="url(#avgConversionGradient)"
                     dot={false}
                     activeDot={{
                       r: 4,

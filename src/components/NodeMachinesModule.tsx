@@ -346,7 +346,7 @@ export function NodeMachinesModule() {
               <CartesianGrid strokeDasharray="none" stroke="#374151" opacity={0.2} horizontal={true} vertical={false} />
 
               {/* No X-axis labels */}
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={false} height={0} />
+              <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={false} height={0} />
 
               {/* Y-axis with 5 values: 0, 200, 400, 600, 800 */}
               <YAxis

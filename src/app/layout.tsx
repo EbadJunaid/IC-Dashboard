@@ -6,11 +6,11 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "IC Dashboard Clone",
+  title: "Network -ICP Dashboard",
   description: "Internet Computer Dashboard Clone with 3D Earth",
   icons: {
-    icon: "/favicon.ico", // Add your custom favicon here
-    apple: "/apple-touch-icon.png", // Add your custom apple touch icon here
+    icon: "/images.svg", // <-- Use your SVG here
+    apple: "/apple-touch-icon.png",
   },
 }
 
@@ -21,6 +21,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/images.svg" type="image/svg+xml" />
+      </head>
       <body className={inter.className} suppressHydrationWarning={true}>
         {children}
       </body>

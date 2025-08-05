@@ -1,0 +1,29 @@
+Transactions :
+
+https://ic-api.internetcomputer.org/api/v3/metrics/message-execution-rate
+https://ic-api.internetcomputer.org/api/v3/metrics/message-execution-rate?start=1722823322&step=86400&message_type=query
+https://ic-api.internetcomputer.org/api/v3/metrics/message-execution-rate?start=1722823322&step=86400&message_type=update
+
+
+Cycle-Burn rate :
+
+https://ic-api.internetcomputer.org/api/v3/metrics/cycle-burn-rate
+https://ic-api.internetcomputer.org/api/v3/metrics/cycle-burn-rate?start=1746583892&end=1754359892&step=86400
+
+
+Finalization Rate :
+
+https://ic-api.internetcomputer.org/api/v3/metrics/block-rate
+https://ic-api.internetcomputer.org/api/v3/metrics/block-rate?start=1620604799&end=1754360358&step=86400
+
+
+
+
+
+https://ic-api.internetcomputer.org/api/v3/metrics/message-execution-rate?start=1722823322&end=1754359322&step=86400&message_type=query
+
+https://ic-api.internetcomputer.org/api/v3/metrics/message-execution-rate?start=1722823322&end=1754359322&step=86400&message_type=update
+
+
+
+https://ic-api.internetcomputer.org/api/v3/metrics/message-execution-rate?start=1722823322&step=86400&message_type=update

@@ -14,7 +14,6 @@ interface PowerData {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
-    
     return (
       <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-600 rounded-lg p-3 shadow-xl">
         <p className="text-white font-semibold text-lg">{payload[0].value.toFixed(3)} kW</p>
@@ -47,8 +46,8 @@ export function PowerConsumptionModule() {
             console.log("Current power API response:", currentData)
 
             // Extract current power value
-            const current = currentData?.total_ic_energy_consumption_rate_kwh?.[1]
-              ? Number.parseFloat(currentData.total_ic_energy_consumption_rate_kwh[1])
+            const current = currentData?.energy_consumption_rate?.[0]?.[1]
+              ? Number.parseFloat(currentData.energy_consumption_rate[0][1])
               : 386.883
 
             setCurrentPower(current)
@@ -77,8 +76,8 @@ export function PowerConsumptionModule() {
 
             // More flexible data parsing
             let powerDataArray = null
-            if (historyData?.total_ic_energy_consumption_rate_kwh) {
-              powerDataArray = historyData.total_ic_energy_consumption_rate_kwh
+            if (historyData?.energy_consumption_rate) {
+              powerDataArray = historyData.energy_consumption_rate
             } else if (historyData?.data) {
               powerDataArray = historyData.data
             } else if (Array.isArray(historyData)) {
@@ -173,8 +172,8 @@ export function PowerConsumptionModule() {
     // Initial fetch
     fetchPowerData()
 
-    // Refresh every 2 minutes
-    const interval = setInterval(fetchPowerData, 120000)
+    // Refresh every 5 second
+    const interval = setInterval(fetchPowerData,60000)
     return () => clearInterval(interval)
   }, [])
 

@@ -28,10 +28,8 @@ export function Header() {
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark")
-      document.body.classList.add("dark")
     } else {
       document.documentElement.classList.remove("dark")
-      document.body.classList.remove("dark")
     }
   }, [isDark])
 
@@ -41,12 +39,13 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 md:space-x-8">
             <div className="flex items-center space-x-2">
-              {/* Replace this div with your custom logo */}
-              <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-                {/* You can replace this with <img src="/your-logo.png" alt="Logo" className="w-full h-full" /> */}
-                <span className="text-white font-bold text-xs md:text-sm">IC</span>
-              </div>
-              <span className="text-white font-semibold text-sm md:text-base">DASHBOARD</span>
+              {/* Logo SVG */}
+              <img
+                src="/images.svg"
+                alt="Logo"
+                className="w-6 h-6 md:w-8 md:h-8 rounded-lg shadow-lg"
+              />
+              <span className="text-white font-semibold text-sm md:text-base">ICP DASHBOARD</span>
             </div>
 
             <nav className="hidden lg:flex items-center space-x-6">
