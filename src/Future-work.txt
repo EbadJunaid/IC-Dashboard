@@ -1,0 +1,5 @@
+Now I have successfully added the Subnets Module Current the flags of the country are displayed randomly because the subnet API just tells us about the country count . It does not provide any information about what are those countries so in order to get this information we can do something like call the API "https://ic-api.internetcomputer.org/api/v3/nodes" It provides us all the nodes information in which subnet ID and location are there so we can pick one subnet and find all its nodes in this way we get the location of each node so ultimately we can get information about countries of the subnet 
+
+so I have planned if everything go well then I will make dynamic URL (page) means by clicking on every subnet we go to the new page which shows us the detailed information about the nodes of that subnet 
+
+
