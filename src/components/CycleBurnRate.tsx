@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { HelpTooltip } from "./HelpTooltip"
 
 interface CycleBurnRateProps {
@@ -8,16 +9,20 @@ interface CycleBurnRateProps {
 }
 
 export function CycleBurnRate({ tcyclesPerSecond, loading = false }: CycleBurnRateProps) {
-  // Format the number to show 6 decimal places for better visibility
-  const formattedValue = tcyclesPerSecond > 0 ? tcyclesPerSecond.toFixed(6) : "0.000000"
+  // Use useMemo to prevent unnecessary re-calculations and potential infinite loops
+  const formattedValue = useMemo(() => {
+    return tcyclesPerSecond > 0 ? tcyclesPerSecond.toFixed(6) : "0.000000"
+  }, [tcyclesPerSecond])
   
   return (
     <div className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-sm border border-slate-600/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 md:p-4 text-white w-full shadow-2xl">
-      <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
-        <h3 className="text-xs sm:text-sm md:text-base font-medium text-slate-300 leading-tight">
-          Cycle Burn Rate
-        </h3>
-        <div className="flex-shrink-0">
+      <div className="flex items-start mb-2 sm:mb-3 gap-2">
+        {/* CHANGED: Help icon now directly after the title text */}
+        <div className="flex jusity-center items-center gap-1">
+          <h3 className="text-xs sm:text-sm md:text-base font-medium text-slate-300 leading-tight mr-3">
+            Cycle Burn Rate   
+           
+          </h3>
           <HelpTooltip content="The rate at which cycles are consumed by the Internet Computer network for computation and storage, measured in TCYCLES per second." />
         </div>
       </div>

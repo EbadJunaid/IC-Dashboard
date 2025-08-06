@@ -20,7 +20,7 @@ import { NodeMachinesModule } from "@/components/NodeMachinesModule"
 import { PowerConsumptionModule } from "@/components/PowerConsumptionModule"
 import { MetricsModule } from "@/components/useful" // Import the reusable component
 import { useMediaQuery } from "react-responsive" // Add this import at the top
-import FooterDemo from "@/components/footer"
+import { FooterDemo } from "@/components/footer"
 
 export default function Dashboard() {
   const controlsRef = useRef<any>(null)
@@ -72,6 +72,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 overflow-x-hidden">
+
       <Header />
 
       {/* Main Content */}

@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import HelpTooltip from "./HelpTooltip"
+import {HelpTooltip} from "./HelpTooltip"
 
+import { useRef } from "react"
 
 interface MetricData {
   timestamp: number
@@ -205,6 +206,82 @@ const moduleConfigs: Record<string, ModuleConfig> = {
 //     </div>
 //   </div>
 // )
+
+
+
+
+// const HelpTooltip = ({ content }: { content: string }) => {
+//   const [isVisible, setIsVisible] = useState(false)
+//   const [isMobile, setIsMobile] = useState(false)
+//   const tooltipRef = useRef<HTMLDivElement>(null)
+//   const buttonRef = useRef<HTMLDivElement>(null)
+
+//   useEffect(() => {
+//     const checkMobile = () => setIsMobile(window.innerWidth < 768)
+//     checkMobile()
+//     window.addEventListener('resize', checkMobile)
+//     return () => window.removeEventListener('resize', checkMobile)
+//   }, [])
+
+//   const handleClick = (e: React.MouseEvent) => {
+//     if (isMobile) {
+//       e.stopPropagation()
+//       setIsVisible(!isVisible)
+//     }
+//   }
+
+//   const handleMouseEnter = () => {
+//     if (!isMobile) setIsVisible(true)
+//   }
+
+//   const handleMouseLeave = () => {
+//     if (!isMobile) setIsVisible(false)
+//   }
+
+//   useEffect(() => {
+//     if (isMobile && isVisible) {
+//       const handleClickOutside = () => setIsVisible(false)
+//       document.addEventListener('click', handleClickOutside)
+//       return () => document.removeEventListener('click', handleClickOutside)
+//     }
+//   }, [isMobile, isVisible])
+
+//   return (
+//     <div className="relative inline-block">
+//       <div
+//         ref={buttonRef}
+//         className="w-4 h-4 rounded-full bg-slate-600 text-white text-xs flex items-center justify-center cursor-help"
+//         onClick={handleClick}
+//         onMouseEnter={handleMouseEnter}
+//         onMouseLeave={handleMouseLeave}
+//       >
+//         ?
+//       </div>
+//       {isVisible && (
+//         <div
+//           ref={tooltipRef}
+//           className={`
+//             absolute z-50 px-2 py-2 bg-slate-800 text-white text-sm rounded-lg
+//             min-w-35 md:min-w 37 lg:min-w-40 max-w-[50vw] text-wrap
+//             ${isMobile 
+//               ? 'w-30 top-6 left-1/2 transform -translate-x-1/2' 
+//               : 'bottom-full mb-2 left-1/2 transform -translate-x-1/2'
+//             }
+//             ${isVisible ? 'opacity-100' : 'opacity-0'}
+//             transition-opacity duration-200
+//           `}
+//           style={{
+//             // Prevent going off-screen
+//             left: 'clamp(8px, 50%, calc(100vw - 264px))',
+//             transform: 'translateX(-50%)'
+//           }}
+//         >
+//           {content}
+//         </div>
+//       )}
+//     </div>
+//   )
+// }
 
 
 

@@ -48,7 +48,7 @@ function FooterSection({ title, links, open, onToggle, isMobile }: {
   )
 }
 
-export default function FooterDemo() {
+export function FooterDemo() {
   const [openSections, setOpenSections] = useState<{[k: string]: boolean}>({
     "ICP Dashboard": false,
     "Internet Computer": false,

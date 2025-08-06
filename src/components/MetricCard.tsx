@@ -17,8 +17,8 @@ export function MetricCard({ title, value, unit, helpText, loading = false, clas
     <div
       className={`bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-3 md:p-4 lg:p-6 text-white shadow-2xl ${className}`}
     >
-      <div className="flex items-start justify-between mb-2 md:mb-3">
-        <h3 className="text-xs md:text-sm lg:text-base font-medium text-slate-300 leading-tight">{title}</h3>
+      <div className="flex items-start mb-2 md:mb-3">
+        <h3 className="text-xs md:text-sm lg:text-base font-medium text-slate-300 leading-tight mr-3">{title}</h3>
         <HelpTooltip content={helpText} />
       </div>
 

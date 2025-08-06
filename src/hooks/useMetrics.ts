@@ -64,7 +64,7 @@ export function useMetrics() {
           const datacenters = Object.values(data.data_centers) as DataCenter[]
 
           // Extract unique regions (first part before comma)
-          const uniqueRegions = new Set(datacenters.map((dc) => dc.region.split(",")[0]?.trim()).filter(Boolean))
+          const uniqueRegions = new Set(datacenters.map((dc) => dc.region.split(",")[2]?.trim()).filter(Boolean))
 
           // Extract unique countries (second part after comma)
           const uniqueCountries = new Set(datacenters.map((dc) => dc.region.split(",")[1]?.trim()).filter(Boolean))
