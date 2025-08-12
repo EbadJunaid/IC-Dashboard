@@ -7,7 +7,7 @@ import type { DataCenter } from "@/types"
 import { useMetrics } from "@/hooks/useMetrics"
 import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics"
 import { Header } from "@/components/Header"
-import { Earth } from "@/components/Earth"
+import { Earth } from "@/components/Earth" // This will be your new perfect Earth component
 import { ZoomControls } from "@/components/ZoomControls"
 import { StatsPanel } from "@/components/StatsPanel"
 import { MobileDataCenterModal } from "@/components/MobileDataCenterModal"
@@ -18,9 +18,16 @@ import { DataCentersModule } from "@/components/DataCentersModule"
 import { NodeProvidersModule } from "@/components/NodeProvidersModule"
 import { NodeMachinesModule } from "@/components/NodeMachinesModule"
 import { PowerConsumptionModule } from "@/components/PowerConsumptionModule"
-import { MetricsModule } from "@/components/useful" // Import the reusable component
-import { useMediaQuery } from "react-responsive" // Add this import at the top
+import { MetricsModule } from "@/components/useful"
+import { useMediaQuery } from "react-responsive"
 import { FooterDemo } from "@/components/footer"
+
+// Loading component for Earth
+const EarthLoader = () => (
+  <div className="flex items-center justify-center w-full h-full">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+  </div>
+)
 
 export default function Dashboard() {
   const controlsRef = useRef<any>(null)
@@ -68,11 +75,10 @@ export default function Dashboard() {
 
   const isWide = useMediaQuery({ minWidth: 1285 })
 
-  if (!mounted) return null; // or a loader
+  if (!mounted) return <EarthLoader />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 overflow-x-hidden">
-
       <Header />
 
       {/* Main Content */}
@@ -85,17 +91,26 @@ export default function Dashboard() {
               <div className="w-full h-full flex items-center justify-center">
                 <Canvas
                   camera={{
-                    position: [0, 0, isMobile ? 5 : isTablet ? 4.5 : 6],
-                    fov: isMobile ? 80 : isTablet ? 75 : 45,
+                    position: [0, 0, isMobile ? 5.5 : isTablet ? 5 : 6],
+                    fov: isMobile ? 75 : isTablet ? 70 : 45,
                   }}
                   style={{
                     background: "transparent",
                     width: "100%",
                     height: "100%",
                   }}
+                  gl={{ 
+                    antialias: true, 
+                    alpha: true,
+                    powerPreference: "high-performance"
+                  }}
                 >
-                  <ambientLight intensity={0.6} />
-                  <pointLight position={[10, 10, 10]} />
+                  {/* Enhanced lighting setup */}
+                  <ambientLight intensity={0.4} />
+                  <directionalLight position={[10, 10, 5]} intensity={0.6} />
+                  <pointLight position={[10, 10, 10]} intensity={0.8} />
+                  <pointLight position={[-10, -10, -10]} intensity={0.3} />
+                  
                   <Suspense fallback={null}>
                     <Earth
                       isMobile={isMobile}
@@ -103,14 +118,18 @@ export default function Dashboard() {
                       onMobileDataCenterClick={handleMobileDataCenterClick}
                     />
                   </Suspense>
+                  
                   <OrbitControls
                     ref={controlsRef}
                     enablePan={false}
                     enableZoom={false}
-                    minDistance={2.5}
-                    maxDistance={8}
+                    minDistance={3}
+                    maxDistance={10}
                     enableDamping
                     dampingFactor={0.05}
+                    rotateSpeed={0.5}
+                    minPolarAngle={Math.PI / 6}
+                    maxPolarAngle={Math.PI - Math.PI / 6}
                   />
                 </Canvas>
               </div>
@@ -158,7 +177,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Second Row of Modules - Now using the reusable MetricsModule */}
+      {/* Second Row of Modules */}
       <div className="p-2 md:p-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <PowerConsumptionModule />
@@ -167,7 +186,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Third Row of Modules - New Metrics */}
+      {/* Third Row of Modules */}
       <div className="p-2 md:p-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <MetricsModule type="transactions" />
@@ -176,7 +195,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Fourth Row of Modules - Responsive 2-Column Layout */}
+      {/* Fourth Row of Modules */}
       <div className="p-2 sm:p-3 md:p-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <MetricsModule type="internet-identities" />
@@ -184,12 +203,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-
       {/* Footer */}
-
       <FooterDemo/>
 
-
+      {/* Mobile Data Center Modal */}
       <MobileDataCenterModal
         dataCenter={selectedDataCenter}
         isOpen={isMobileModalOpen}

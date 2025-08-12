@@ -4,8 +4,17 @@ import { useState, useEffect, useRef } from "react"
 import { useFrame } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
 import * as THREE from "three"
-import type { DataCenter, CountryFeature } from "@/types"
-import type { JSX } from "react/jsx-runtime"
+import type { DataCenter } from "@/types"
+
+// Define types
+interface ContinentFeature {
+  type: string;
+  properties: { continent: string };
+  geometry: {
+    type: string;
+    coordinates: number[][][] | number[][][][];
+  };
+}
 
 // Data Center Point Component
 function DataCenterPoint({
@@ -113,13 +122,16 @@ interface EarthProps {
 export function Earth({ isMobile, isTablet, onMobileDataCenterClick }: EarthProps) {
   const earthRef = useRef<THREE.Group>(null)
   const [dataCenters, setDataCenters] = useState<DataCenter[]>([])
-  const [countryBoundaries, setCountryBoundaries] = useState<CountryFeature[]>([])
+  const [continentBoundaries, setContinentBoundaries] = useState<ContinentFeature[]>([])
   const [isHovered, setIsHovered] = useState(false)
 
   // Load data centers
   useEffect(() => {
     fetch("https://ic-api.internetcomputer.org/api/v3/data-centers")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch data centers")
+        return res.json()
+      })
       .then((data) => {
         if (data.data_centers) {
           setDataCenters(Object.values(data.data_centers))
@@ -128,14 +140,17 @@ export function Earth({ isMobile, isTablet, onMobileDataCenterClick }: EarthProp
       .catch((err) => console.error("Failed to load data centers:", err))
   }, [])
 
-  // Load country boundaries
+  // Load continent boundaries
   useEffect(() => {
-    fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
-      .then((res) => res.json())
-      .then((data) => {
-        setCountryBoundaries(data.features)
+    fetch("/continents.geojson")
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch continent boundaries")
+        return res.json()
       })
-      .catch((err) => console.error("Failed to load country boundaries:", err))
+      .then((data) => {
+        setContinentBoundaries(data.features)
+      })
+      .catch((err) => console.error("Failed to load continent boundaries:", err))
   }, [])
 
   // Convert lat/lng to 3D coordinates
@@ -150,52 +165,94 @@ export function Earth({ isMobile, isTablet, onMobileDataCenterClick }: EarthProp
     return [x, y, z] as [number, number, number]
   }
 
-  // Create country boundary lines
+  // Create continent boundary lines
   const createBoundaryLines = () => {
     const lines: JSX.Element[] = []
     const earthRadius = isMobile ? 2.7 : isTablet ? 2.6 : 2.5
 
-    countryBoundaries.forEach((feature, index) => {
+    continentBoundaries.forEach((feature, index) => {
       if (feature.geometry.type === "Polygon") {
-        feature.geometry.coordinates.forEach((ring, ringIndex) => {
+        // Use the first ring (outer boundary)
+        const ring = feature.geometry.coordinates[0]
+        const points = ring.map(([lng, lat]) => {
+          const [x, y, z] = latLngToVector3(lat, lng, earthRadius + 0.01)
+          return new THREE.Vector3(x, y, z)
+        })
+        const positions = new Float32Array(points.flatMap((p) => [p.x, p.y, p.z]))
+        lines.push(
+          <line key={`${index}-outer`}>
+            <bufferGeometry>
+              <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+            </bufferGeometry>
+            <lineBasicMaterial color="#ca31fe" transparent opacity={0.5} />
+          </line>,
+        )
+      } else if (feature.geometry.type === "MultiPolygon") {
+        // Use the first ring of each polygon (outer boundary)
+        feature.geometry.coordinates.forEach((polygon, polyIndex) => {
+          const ring = polygon[0]
           const points = ring.map(([lng, lat]) => {
             const [x, y, z] = latLngToVector3(lat, lng, earthRadius + 0.01)
             return new THREE.Vector3(x, y, z)
           })
-
           const positions = new Float32Array(points.flatMap((p) => [p.x, p.y, p.z]))
-
           lines.push(
-            <line key={`${index}-${ringIndex}`}>
+            <line key={`${index}-${polyIndex}-outer`}>
               <bufferGeometry>
                 <bufferAttribute attach="attributes-position" args={[positions, 3]} />
               </bufferGeometry>
-              <lineBasicMaterial color="#6366f1" transparent opacity={0.5} />
+              <lineBasicMaterial color="#ca31fe" transparent opacity={1} />
             </line>,
           )
         })
-      } else if (feature.geometry.type === "MultiPolygon") {
-        feature.geometry.coordinates.forEach((polygon, polyIndex) => {
-          polygon.forEach((ring, ringIndex) => {
-            const points = ring.map(([lng, lat]) => {
-              const [x, y, z] = latLngToVector3(lat, lng, earthRadius + 0.01)
-              return new THREE.Vector3(x, y, z)
-            })
-
-            const positions = new Float32Array(points.flatMap((p) => [p.x, p.y, p.z]))
-
-            lines.push(
-              <line key={`${index}-${polyIndex}-${ringIndex}`}>
-                <bufferGeometry>
-                  <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-                </bufferGeometry>
-                <lineBasicMaterial color="#6366f1" transparent opacity={0.5} />
-              </line>,
-            )
-          })
-        })
       }
     })
+
+    return lines
+  }
+
+  // Helper to create grid lines (latitude and longitude)
+  const createGridLines = () => {
+    const lines: JSX.Element[] = []
+    const earthRadius = isMobile ? 2.7 : isTablet ? 2.6 : 2.5
+    const latStep = 15 // degrees between latitude lines
+    const lngStep = 15 // degrees between longitude lines
+
+    // Latitude lines (horizontal rings)
+    for (let lat = -75; lat <= 75; lat += latStep) {
+      const points: THREE.Vector3[] = []
+      for (let lng = -180; lng <= 180; lng += 5) {
+        const [x, y, z] = latLngToVector3(lat, lng, earthRadius + 0.015)
+        points.push(new THREE.Vector3(x, y, z))
+      }
+      const positions = new Float32Array(points.flatMap((p) => [p.x, p.y, p.z]))
+      lines.push(
+        <line key={`lat-${lat}`}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+          </bufferGeometry>
+          <lineBasicMaterial color="#ffffff" transparent opacity={0.035} />
+        </line>
+      )
+    }
+
+    // Longitude lines (vertical rings)
+    for (let lng = -180; lng < 180; lng += lngStep) {
+      const points: THREE.Vector3[] = []
+      for (let lat = -90; lat <= 90; lat += 5) {
+        const [x, y, z] = latLngToVector3(lat, lng, earthRadius + 0.015)
+        points.push(new THREE.Vector3(x, y, z))
+      }
+      const positions = new Float32Array(points.flatMap((p) => [p.x, p.y, p.z]))
+      lines.push(
+        <line key={`lng-${lng}`}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+          </bufferGeometry>
+          <lineBasicMaterial color="#ffffff" transparent opacity={0.035} />
+        </line>
+      )
+    }
 
     return lines
   }
@@ -215,11 +272,14 @@ export function Earth({ isMobile, isTablet, onMobileDataCenterClick }: EarthProp
       {/* Earth Sphere - Responsive size */}
       <mesh>
         <sphereGeometry args={[earthRadius, 64, 64]} />
-        <meshBasicMaterial color="#0a0a0a" transparent opacity={0.9} />
+        <meshBasicMaterial color="#240086" transparent opacity={0.4} />
       </mesh>
 
-      {/* Country Boundaries */}
+      {/* Continent Boundaries */}
       {createBoundaryLines()}
+
+      {/* Grid Lines */}
+      {createGridLines()}
 
       {/* Data Center Points */}
       {dataCenters.map((dc) => (
