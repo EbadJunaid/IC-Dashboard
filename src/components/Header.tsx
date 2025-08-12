@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Search, Sun, Moon, Menu, Command } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import { SearchModal } from "./SearchModal"
 import { MobileMenu } from "./MobileMenu"
 
@@ -40,10 +41,13 @@ export function Header() {
           <div className="flex items-center space-x-4 md:space-x-8">
             <div className="flex items-center space-x-2">
               {/* Logo SVG */}
-              <img
+              <Image
                 src="/images.svg"
                 alt="Logo"
+                width={32}
+                height={32}
                 className="w-6 h-6 md:w-8 md:h-8 rounded-lg shadow-lg"
+                priority
               />
               <span className="text-white font-semibold text-sm md:text-base">ICP DASHBOARD</span>
             </div>

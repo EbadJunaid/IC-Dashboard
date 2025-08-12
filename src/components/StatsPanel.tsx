@@ -1,16 +1,16 @@
 "use client"
 
 import type { MetricsData } from "@/types"
+import Image from "next/image"
 
 function CountryFlag({ countryCode, className = "w-4 h-3" }: { countryCode: string; className?: string }) {
   return (
-    <img
+    <Image
       src={`https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`}
       alt={`${countryCode} flag`}
+      width={20}
+      height={15}
       className={`${className} object-cover flex-shrink-0 rounded-sm`}
-      onError={(e) => {
-        e.currentTarget.style.display = "none"
-      }}
     />
   )
 }

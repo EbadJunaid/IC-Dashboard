@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { ExternalLink } from "lucide-react"
+import Image from "next/image"
 import type { DataCenter } from "@/types"
 
 function CountryFlag({ countryCode, className = "w-5 h-4" }: { countryCode: string; className?: string }) {
   return (
-    <img
+    <Image
       src={`https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`}
       alt={`${countryCode} flag`}
+      width={20}
+      height={16}
       className={`${className} object-cover flex-shrink-0`}
-      onError={(e) => {
-        e.currentTarget.style.display = "none"
-      }}
     />
   )
 }

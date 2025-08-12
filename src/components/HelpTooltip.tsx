@@ -27,7 +27,6 @@ export function HelpTooltip({ content, className = "" }: HelpTooltipProps) {
     if (isVisible && buttonRef.current && mounted) {
       const buttonRect = buttonRef.current.getBoundingClientRect()
       const windowWidth = window.innerWidth
-      const windowHeight = window.innerHeight
       const tooltipWidth = isMobile ? 200 : 256
       const tooltipHeight = 80
 

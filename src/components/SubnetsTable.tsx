@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { HelpTooltip } from "./HelpTooltip"
@@ -33,14 +34,13 @@ function CountryFlags({ count, maxShow = 3 }: { count: number; maxShow?: number 
   return (
     <div className="flex items-center space-x-1">
       {Array.from({ length: showCount }).map((_, i) => (
-        <img
+        <Image
           key={i}
           src={`https://flagcdn.com/w20/${sampleCountries[i % sampleCountries.length]}.png`}
           alt="Country flag"
+          width={20}
+          height={15}
           className="w-4 h-3 rounded-sm object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = "none"
-          }}
         />
       ))}
       {remaining > 0 && <span className="text-xs text-gray-400 ml-1">+{remaining}</span>}

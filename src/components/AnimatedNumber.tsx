@@ -17,8 +17,9 @@ export function AnimatedNumber({
 }: AnimatedNumberProps) {
   const [displayValue, setDisplayValue] = useState(value)
   const [isAnimating, setIsAnimating] = useState(false)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number | null>(null)
   const previousValue = useRef(value)
+  const displayValueRef = useRef(value)
 
   const formatValue = useCallback((num: number) => {
     if (!formatNumber) return num.toString()
@@ -32,7 +33,7 @@ export function AnimatedNumber({
     previousValue.current = value
     setIsAnimating(true)
     
-    const startValue = displayValue
+    const startValue = displayValueRef.current
     const difference = value - startValue
     const startTime = Date.now()
 
@@ -45,13 +46,15 @@ export function AnimatedNumber({
       const currentValue = Math.floor(startValue + difference * easeOutCubic)
       
       setDisplayValue(currentValue)
+      displayValueRef.current = currentValue
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate)
       } else {
         setDisplayValue(value)
+        displayValueRef.current = value
         setIsAnimating(false)
-        animationRef.current = undefined
+        animationRef.current = null
       }
     }
 
@@ -66,15 +69,18 @@ export function AnimatedNumber({
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
-        animationRef.current = undefined
+        animationRef.current = null
       }
     }
-  }, [value, duration]) // Removed displayValue from dependencies
+  }, [value, duration])
 
-  // Initialize displayValue on mount
+  // Keep displayValue and ref in sync if external value changes while not animating
   useEffect(() => {
-    setDisplayValue(value)
-  }, []) // Empty dependency array for mount only
+    if (!isAnimating) {
+      setDisplayValue(value)
+      displayValueRef.current = value
+    }
+  }, [value, isAnimating])
 
   return (
     <span className={`${className} ${isAnimating ? "text-blue-400 transition-colors duration-200" : ""}`}>

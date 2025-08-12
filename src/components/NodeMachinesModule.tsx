@@ -14,7 +14,16 @@ interface NodeData {
 
 type TimeRange = "1D" | "7D" | "1M" | "3M" | "1Y" | "All"
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface RechartsTooltipPayload<T> {
+  value: number
+  payload: T
+}
+interface CustomTooltipProps<T> {
+  active?: boolean
+  payload?: Array<RechartsTooltipPayload<T>>
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps<NodeData>) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -194,8 +203,8 @@ export function NodeMachinesModule() {
         console.error("Invalid chart data structure:", data)
         throw new Error("Invalid chart data format - missing or empty total_nodes array")
       }
-    } catch (error) {
-      if (error.name === "AbortError") {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
         console.error("Chart data fetch was aborted (timeout):", error)
       } else {
         console.error("Failed to fetch chart data:", error)

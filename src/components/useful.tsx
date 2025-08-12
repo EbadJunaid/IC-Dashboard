@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import {HelpTooltip} from "./HelpTooltip"
 
-import { useRef } from "react"
 
 interface MetricData {
   timestamp: number
@@ -290,7 +289,17 @@ const moduleConfigs: Record<string, ModuleConfig> = {
 
 
 
-const CustomTooltip = ({ active, payload, label, config }: any) => {
+interface RechartsTooltipPayload<T> {
+  value: number
+  payload: T
+}
+interface MetricsTooltipProps<T> {
+  active?: boolean
+  payload?: Array<RechartsTooltipPayload<T>>
+  config: ModuleConfig
+}
+
+const CustomTooltip = ({ active, payload, config }: MetricsTooltipProps<MetricData>) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     
@@ -374,13 +383,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
   const config = moduleConfigs[type]
   
   // Early return if config is not found
-  if (!config) {
-    return (
-      <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-4 md:p-6 text-white h-full shadow-2xl">
-        <div className="text-red-400">Invalid module type: {type}</div>
-      </div>
-    )
-  }
+  // Given the union type for `type`, a valid config must always exist
 
   const [currentValue, setCurrentValue] = useState(config.fallbackValue)
   const [chartData, setChartData] = useState<MetricData[]>([])
@@ -419,7 +422,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
     }
     
     return ticks
-  }, [config.hasDualMetrics, config.title])
+  }, [config])
 
   // Custom tick formatter for Y-axis
   const formatYAxisTick = useCallback((value: number) => {
@@ -434,7 +437,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
     } else {
       return value.toFixed(0)
     }
-  }, [config.yAxisFormatter])
+  }, [config])
 
   // Fetch chart data function
   const fetchChartData = useCallback(async (range: TimeRange) => {
@@ -506,14 +509,17 @@ export function MetricsModule({ type }: MetricsModuleProps) {
         if (updateData?.[config.apiKey] && queryData?.[config.apiKey] && 
             Array.isArray(updateData[config.apiKey]) && Array.isArray(queryData[config.apiKey])) {
           
-          const queryMap = new Map(queryData[config.apiKey].map(([timestamp, value]: [number, string]) => 
-            [timestamp, config.valueProcessor(value)]
-          ))
+          const queryMap = new Map<number, number>(
+            queryData[config.apiKey].map(([timestamp, value]: [number, string]) => [
+              timestamp,
+              config.valueProcessor(value),
+            ])
+          )
 
           const chartPoints: MetricData[] = updateData[config.apiKey]
             .map(([timestamp, updateValue]: [number, string]) => {
               const processedUpdateValue = config.valueProcessor(updateValue)
-              const processedQueryValue = queryMap.get(timestamp) || 0
+              const processedQueryValue = queryMap.get(timestamp) ?? 0
               const totalValue = processedUpdateValue + processedQueryValue
 
               if (isNaN(processedUpdateValue) || isNaN(timestamp)) return null
@@ -541,7 +547,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                       }),
               }
             })
-            .filter(Boolean)
+            .filter((point: MetricData | null): point is MetricData => point !== null)
 
           if (chartPoints.length > 0) {
             chartPoints.sort((a, b) => a.timestamp - b.timestamp)
@@ -573,9 +579,14 @@ export function MetricsModule({ type }: MetricsModuleProps) {
         if (conversionData?.icp_xdr_conversion_rates && avgConversionData?.avg_icp_xdr_conversion_rates && 
             Array.isArray(conversionData.icp_xdr_conversion_rates) && Array.isArray(avgConversionData.avg_icp_xdr_conversion_rates)) {
           
-          const avgConversionMap = new Map(avgConversionData.avg_icp_xdr_conversion_rates.map(([timestamp, value]: [number, string]) => 
-            [timestamp, config.valueProcessor(value)]
-          ))
+          const avgConversionMap = new Map<number, number>(
+            avgConversionData.avg_icp_xdr_conversion_rates.map(
+              ([timestamp, value]: [number, string]) => [
+                timestamp,
+                config.valueProcessor(value),
+              ]
+            )
+          )
 
           const chartPoints: MetricData[] = conversionData.icp_xdr_conversion_rates
             .map(([timestamp, conversionValue]: [number, string]) => {
@@ -607,7 +618,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                       }),
               }
             })
-            .filter(Boolean)
+            .filter((point: MetricData | null): point is MetricData => point !== null)
 
           if (chartPoints.length > 0) {
             chartPoints.sort((a, b) => a.timestamp - b.timestamp)
@@ -654,7 +665,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
                       }),
               }
             })
-            .filter(Boolean)
+            .filter((point: MetricData | null): point is MetricData => point !== null)
 
           if (chartPoints.length > 0) {
             chartPoints.sort((a, b) => a.timestamp - b.timestamp)
@@ -664,15 +675,17 @@ export function MetricsModule({ type }: MetricsModuleProps) {
         }
       }
     } catch (error) {
-      if (error.name === "AbortError") {
-        console.log(`${type} chart data fetch was aborted (timeout):`, error)
+      const err = error as unknown
+      const isAbortError = typeof err === 'object' && err !== null && 'name' in err && (err as { name?: string }).name === 'AbortError'
+      if (isAbortError) {
+        console.log(`${type} chart data fetch was aborted (timeout):`, err)
       } else {
-        console.log(`Error fetching ${type} chart data:`, error)
+        console.log(`Error fetching ${type} chart data:`, err)
       }
     } finally {
       setChartLoading(false)
     }
-  }, [type, config.apiEndpoint, config.hasEndParameter, config.hasDualMetrics, config.apiKey, config.valueProcessor, calculateYAxisTicks, config.title, config.conversionApiEndpoint, config.avgConversionApiEndpoint])
+  }, [type, config, calculateYAxisTicks])
 
   // Fetch current metric value
   const fetchCurrentValue = useCallback(async () => {
@@ -708,7 +721,7 @@ export function MetricsModule({ type }: MetricsModuleProps) {
       console.log(`Error fetching current ${type}:`, error)
       setCurrentValue(config.fallbackValue)
     }
-  }, [config.apiEndpoint, config.apiKey, config.valueProcessor, config.fallbackValue, type])
+  }, [config, type])
 
   // Initial data fetch
   useEffect(() => {

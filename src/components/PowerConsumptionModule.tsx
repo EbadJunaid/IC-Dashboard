@@ -11,7 +11,16 @@ interface PowerData {
   displayTime: string
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface RechartsTooltipPayload<T> {
+  value: number
+  payload: T
+}
+interface CustomTooltipProps<T> {
+  active?: boolean
+  payload?: Array<RechartsTooltipPayload<T>>
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps<PowerData>) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -85,13 +94,14 @@ export function PowerConsumptionModule() {
             }
 
             if (powerDataArray && Array.isArray(powerDataArray) && powerDataArray.length > 0) {
-              const chartPoints: PowerData[] = powerDataArray
-                .map((item: any) => {
+              type RawPoint = [number, string] | { timestamp: number; value: string }
+              const chartPoints: PowerData[] = (powerDataArray as RawPoint[])
+                .map((item: RawPoint) => {
                   let timestamp: number, value: string
 
                   if (Array.isArray(item) && item.length >= 2) {
                     ;[timestamp, value] = item
-                  } else if (item.timestamp && item.value) {
+                  } else if (!Array.isArray(item) && 'timestamp' in item && 'value' in item) {
                     timestamp = item.timestamp
                     value = item.value
                   } else {
@@ -119,7 +129,7 @@ export function PowerConsumptionModule() {
                     })} UTC`,
                   }
                 })
-                .filter(Boolean)
+                .filter((item): item is PowerData => item !== null)
 
               if (chartPoints.length > 0) {
                 setChartData(chartPoints)
@@ -172,8 +182,8 @@ export function PowerConsumptionModule() {
     // Initial fetch
     fetchPowerData()
 
-    // Refresh every 5 second
-    const interval = setInterval(fetchPowerData,60000)
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchPowerData, 60000)
     return () => clearInterval(interval)
   }, [])
 

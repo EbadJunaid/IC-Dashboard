@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Image from "next/image"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
 const dashboardLinks = [
@@ -85,7 +86,7 @@ export function FooterDemo() {
       <footer className="w-full px-4 md:px-8 py-8 bg-[#16161d]">
         {/* Logo */}
         <div className="mb-8 flex items-center">
-          <img src="/images.svg" alt="ICP Logo" className="w-8 h-8 mr-2" />
+          <Image src="/images.svg" alt="ICP Logo" width={32} height={32} className="w-8 h-8 mr-2" />
           <span className="font-bold text-white text-lg">ICP DASHBOARD</span>
         </div>
 
