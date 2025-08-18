@@ -8,7 +8,7 @@ import type { DataCenter } from "@/types"
 import { useMetrics } from "@/hooks/useMetrics"
 import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics"
 import { Header } from "@/components/Header"
-import { Earth } from "@/components/Earth"
+import { EarthComponent,EarthComponentRef } from "@/components/EarthComponent" // Your new component
 import { ZoomControls } from "@/components/ZoomControls"
 import { StatsPanel } from "@/components/StatsPanel"
 import { MobileDataCenterModal } from "@/components/MobileDataCenterModal"
@@ -38,7 +38,7 @@ export default function Dashboard() {
     const checkScreenSize = () => {
       const width = window.innerWidth
       setIsMobile(width < 768)
-      setIsTablet(width >= 768 && width < 1024)
+      setIsTablet(width >= 768 && width < 1074)
     }
 
     checkScreenSize()
@@ -48,26 +48,19 @@ export default function Dashboard() {
 
   useEffect(() => setMounted(true), [])
 
-  const handleZoomIn = () => {
-    if (controlsRef.current) {
-      controlsRef.current.dollyIn(0.8)
-      controlsRef.current.update()
-    }
-  }
-
-  const handleZoomOut = () => {
-    if (controlsRef.current) {
-      controlsRef.current.dollyOut(0.8)
-      controlsRef.current.update()
-    }
-  }
-
   const handleMobileDataCenterClick = (dataCenter: DataCenter) => {
     setSelectedDataCenter(dataCenter)
     setIsMobileModalOpen(true)
   }
 
   const isWide = useMediaQuery({ minWidth: 1285 })
+
+  const earthRef = useRef<EarthComponentRef>(null)
+
+  const handleZoomIn = () => earthRef.current?.zoomIn()
+  const handleZoomOut = () => earthRef.current?.zoomOut()
+  const handleResetZoom = () => earthRef.current?.resetZoom()
+  const getCurrentZoom = () => earthRef.current?.getCurrentZoom() ?? 1.4
 
   if (!mounted) return null
 
@@ -80,48 +73,22 @@ export default function Dashboard() {
         {/* Left Section - Earth + Cycle Burn Rate */}
         <div className="flex-1 lg:flex-[2] xl:flex-[3] p-2 md:p-4">
           <div className="h-full bg-gradient-to-br from-slate-900/60 to-slate-800/60 backdrop-blur-sm border border-slate-600/30 rounded-2xl flex flex-col">
-            {/* Earth Section - Perfect centering */}
+            {/* Earth Section - Replace Canvas with raw HTML implementation */}
             <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-              <div className="w-full h-full flex items-center justify-center">
-                <Canvas
-                  camera={{
-                    position: [0, 0, isMobile ? 5 : isTablet ? 4.5 : 6],
-                    fov: isMobile ? 80 : isTablet ? 75 : 45,
-                  }}
-                  style={{
-                    background: "transparent",
-                    width: "100%",
-                    height: "100%",
-                  }}
-                  gl={{ 
-                    antialias: true, 
-                    alpha: true,
-                    powerPreference: "high-performance"
-                  }}
-                >
-                  <ambientLight intensity={0.6} />
-                  <pointLight position={[10, 10, 10]} intensity={0.8} />
-                  <pointLight position={[-10, -10, -10]} intensity={0.3} />
-                  <Suspense fallback={null}>
-                    <Earth
-                      isMobile={isMobile}
-                      isTablet={isTablet}
-                      onMobileDataCenterClick={handleMobileDataCenterClick}
-                    />
-                  </Suspense>
-                  <OrbitControls
-                    ref={controlsRef}
-                    enablePan={false}
-                    enableZoom={false}
-                    minDistance={2.5}
-                    maxDistance={8}
-                    enableDamping
-                    dampingFactor={0.05}
-                    rotateSpeed={0.5}
-                  />
-                </Canvas>
+              <div className="w-full h-full">
+                <EarthComponent
+                  ref={earthRef} 
+                  isMobile={isMobile}
+                  isTablet={isTablet}
+                  onMobileDataCenterClick={handleMobileDataCenterClick}
+                />
               </div>
-              <ZoomControls onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} />
+              {/* Note: ZoomControls might need to be adapted or removed since they were for Three.js Canvas */}
+              <ZoomControls
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onResetZoom={handleResetZoom}
+              />
             </div>
 
             {/* Cycle Burn Rate Section - Compact */}
