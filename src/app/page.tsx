@@ -37,8 +37,9 @@ export default function Dashboard() {
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth
+      console.log("Scrren size :",width);
       setIsMobile(width < 768)
-      setIsTablet(width >= 768 && width < 1074)
+      setIsTablet(width >= 768 && width < 1024)
     }
 
     checkScreenSize()

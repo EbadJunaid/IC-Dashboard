@@ -567,7 +567,7 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
               const isMultiple = currentGroupData.length > 1
 
               const countryCode = firstDC.region.split(",")[1]?.trim()?.toLowerCase() || "un"
-              const flagHtml = `<img src="https://flagcdn.com/w20/${countryCode}.png" alt="${countryCode} flag" onerror="this.style.display='none'; this.parentElement.innerHTML='ðŸŒ';" />`
+              const flagHtml = `<img src="https://flagcdn.com/w20/${countryCode}.png" alt="${countryCode} flag" onerror="this.style.display='none'; this.parentElement.innerHTML='🌍';" />`
 
               const regionParts = firstDC.region.split(",")
               const regionDisplay = regionParts.length >= 3 
@@ -586,7 +586,7 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
                       <div class="datacenter-item">
                         <div class="datacenter-header" data-index="${index}">
                           <div class="datacenter-name">${dc.name}</div>
-                          <div class="expand-icon expanded">â–¼</div>
+                          <div class="expand-icon expanded">▼</div>
                         </div>
                         <div class="datacenter-details expanded">
                           <div class="detail-row">
@@ -638,7 +638,7 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
                   <div class="datacenter-item">
                     <div class="datacenter-header">
                       <div class="datacenter-name">${dc.name}</div>
-                      <div class="expand-icon expanded">â–¼</div>
+                      <div class="expand-icon expanded">▼</div>
                     </div>
                     <div class="datacenter-details expanded">
                       <div class="detail-row">
