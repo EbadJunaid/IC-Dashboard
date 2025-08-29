@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { X, ChevronDown, ExternalLink } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import type { DataCenter } from "@/types"
 
@@ -83,15 +84,17 @@ export function MobileDataCenterModal({ dataCenter, isOpen, onClose }: MobileDat
   const regionDisplay = dataCenter.region
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center md:hidden">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center ">
       <div className="bg-gradient-to-b from-slate-900 to-slate-800 border-t border-slate-600/50 rounded-t-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-600/50 p-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-6 h-4 rounded-sm overflow-hidden bg-slate-700 flex items-center justify-center">
-              <img
+              <Image
                 src={`https://flagcdn.com/w20/${countryCode}.png`}
                 alt={`${countryCode} flag`}
+                width={20}
+                height={15}
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none"
@@ -188,7 +191,7 @@ export function MobileDataCenterModal({ dataCenter, isOpen, onClose }: MobileDat
                         {/* Subnets */}
                         <div className="flex items-center justify-between py-3">
                           <span className="text-slate-300 text-sm">Subnets</span>
-                          <span className="text-white font-bold text-lg">{dc.subnets ? dc.subnets.length : 0}</span>
+                          <span className="text-white font-bold text-lg">{dc.subnets || 0}</span>
                         </div>
                       </div>
                     )}

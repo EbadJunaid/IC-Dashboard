@@ -52,7 +52,6 @@ export function PowerConsumptionModule() {
 
           if (currentResponse.ok) {
             const currentData = await currentResponse.json()
-            console.log("Current power API response:", currentData)
 
             // Extract current power value
             const current = currentData?.energy_consumption_rate?.[0]?.[1]
@@ -81,7 +80,6 @@ export function PowerConsumptionModule() {
 
           if (historyResponse.ok) {
             const historyData = await historyResponse.json()
-            console.log("Power history API response:", historyData)
 
             // More flexible data parsing
             let powerDataArray = null
@@ -134,19 +132,15 @@ export function PowerConsumptionModule() {
               if (chartPoints.length > 0) {
                 setChartData(chartPoints)
               } else {
-                console.log("No valid power chart data points, using fallback")
                 generateFallbackData()
               }
             } else {
-              console.log("No valid power data array, using fallback")
               generateFallbackData()
             }
           } else {
-            console.error("Failed to fetch power history data:", historyResponse.status)
             generateFallbackData()
           }
-        } catch (error) {
-          console.error("Error fetching power history data:", error)
+        } catch {
           generateFallbackData()
         }
       } finally {

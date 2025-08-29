@@ -17,7 +17,7 @@ export function BottomMetrics() {
 
   return (
     <div className="w-full px-3 md:px-6 py-3 md:py-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
         <MetricCard
           title="ETH-equivalent Transactions"
           value={metrics.ethEquivalentTxns}

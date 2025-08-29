@@ -15,15 +15,16 @@ interface MetricCardProps {
 export function MetricCard({ title, value, unit, helpText, loading = false, className = "" }: MetricCardProps) {
   return (
     <div
-      className={`bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm border border-slate-600/50 rounded-2xl p-3 md:p-4 lg:p-6 text-white shadow-2xl ${className}`}
+      className={`bg-[#413555]/60 border border-white/10 rounded-2xl p-3 md:p-4 lg:p-4 text-white/90 shadow-[0_10px_30px_rgba(0,0,0,0.35)] ${className}`}
+
     >
       <div className="flex items-start mb-2 md:mb-3">
-        <h3 className="text-xs md:text-sm lg:text-base font-medium text-slate-300 leading-tight mr-3">{title}</h3>
+        <h4 className="text-base md:sx lg:sx xl:text-base text-slate-300 leading-tight mr-3">{title}</h4>
         <HelpTooltip content={helpText} />
       </div>
 
       <div className="flex items-baseline space-x-1">
-        <div className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold">
+        <div className="text-lg md:text-2xl lg:text-2xl xl:text-2xl font-bold">
           {loading ? (
             <span className="animate-pulse">...</span>
           ) : (

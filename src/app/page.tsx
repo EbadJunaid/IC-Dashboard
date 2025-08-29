@@ -1,14 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef, Suspense } from "react"
-import { Canvas } from "@react-three/fiber"
-import { OrbitControls } from "@react-three/drei"
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib"
+import { useState, useEffect, useRef } from "react"
 import type { DataCenter } from "@/types"
 import { useMetrics } from "@/hooks/useMetrics"
 import { useRealTimeMetrics } from "@/hooks/useRealTimeMetrics"
 import { Header } from "@/components/Header"
-import { EarthComponent,EarthComponentRef } from "@/components/EarthComponent" // Your new component
+import { EarthComponent, EarthComponentRef } from "@/components/EarthComponent" // Your new component
 import { ZoomControls } from "@/components/ZoomControls"
 import { StatsPanel } from "@/components/StatsPanel"
 import { MobileDataCenterModal } from "@/components/MobileDataCenterModal"
@@ -24,9 +21,9 @@ import { useMediaQuery } from "react-responsive"
 import { FooterDemo } from "@/components/footer"
 
 export default function Dashboard() {
-  const controlsRef = useRef<OrbitControlsImpl | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile,  setIsMobile] = useState(false)
   const [isTablet, setIsTablet] = useState(false)
+  const [isMedium, setIsMedium] = useState(false) 
   const [selectedDataCenter, setSelectedDataCenter] = useState<DataCenter | null>(null)
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -37,9 +34,11 @@ export default function Dashboard() {
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth
-      console.log("Scrren size :",width);
       setIsMobile(width < 768)
-      setIsTablet(width >= 768 && width < 1024)
+      // setIsTablet(width >= 768 && width < 1280)
+      setIsMedium(width >= 768 && width < 1100)
+      setIsTablet(width >= 1100 && width < 1280)
+      console.log("screensize", width, { isMobile: width < 768, isMedium: width >= 768 && width < 1024, isTablet: width >= 1024 && width < 1280 });
     }
 
     checkScreenSize()
@@ -54,69 +53,82 @@ export default function Dashboard() {
     setIsMobileModalOpen(true)
   }
 
-  const isWide = useMediaQuery({ minWidth: 1285 })
+  const isWide = useMediaQuery({ minWidth: 1280 })
 
   const earthRef = useRef<EarthComponentRef>(null)
 
   const handleZoomIn = () => earthRef.current?.zoomIn()
   const handleZoomOut = () => earthRef.current?.zoomOut()
   const handleResetZoom = () => earthRef.current?.resetZoom()
-  const getCurrentZoom = () => earthRef.current?.getCurrentZoom() ?? 1.4
+  
 
   if (!mounted) return null
 
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 overflow-x-hidden">
-      <Header />
-
-      {/* Main Content */}
-      <div className={`flex flex-col ${isWide ? "lg:flex-row" : ""} h-[calc(100vh-80px)]`}>
-        {/* Left Section - Earth + Cycle Burn Rate */}
-        <div className="flex-1 lg:flex-[2] xl:flex-[3] p-2 md:p-4">
-          <div className="h-full bg-gradient-to-br from-slate-900/60 to-slate-800/60 backdrop-blur-sm border border-slate-600/30 rounded-2xl flex flex-col">
+      <div className="bg-[#1d0e35] xl:h-[110vh] md:h-full sm:h-full flex flex-col justify-between relative">
+        <div className="absolute top-0 left-0 w-full z-20">
+          <Header />
+        </div>
+        {/* Main Content */}
+        <div className={`relative flex flex-col ${isWide ? "lg:flex-row" : ""} justify-between h-[100%]`}>
+          {/* Left ction - Earth + Cycle Burn Rate */}
+          <div className="relative w-full flex flex-col">
             {/* Earth Section - Replace Canvas with raw HTML implementation */}
-            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-              <div className="w-full h-full">
+            <div className="h-full relative flex relative items-start justify-start overflow-hidden z-0 "> 
+              <div
+                className="
+                xl:absolute xl:1 xl:right-90
+
+                xl: w-full xl:h-full
+                
+                "
+              >
+
                 <EarthComponent
-                  ref={earthRef} 
+                  ref={earthRef}
                   isMobile={isMobile}
                   isTablet={isTablet}
+                  isMedium={isMedium}     
                   onMobileDataCenterClick={handleMobileDataCenterClick}
                 />
               </div>
-              {/* Note: ZoomControls might need to be adapted or removed since they were for Three.js Canvas */}
-              <ZoomControls
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onResetZoom={handleResetZoom}
-              />
+              <div className="xl:absolute xl:top-50 xl:left-4 md:absolute md:top-[40%] md:left-4">
+                {/* Note: ZoomControls might need to be adapted or removed since they were for Three.js Canvas */}
+                <ZoomControls
+                  onZoomIn={handleZoomIn}
+                  onZoomOut={handleZoomOut}
+                  onResetZoom={handleResetZoom}
+                />
+              </div>
             </div>
 
             {/* Cycle Burn Rate Section - Compact */}
-            <div className="flex-shrink-0 p-3 md:p-4 border-t border-slate-600/30 flex justify-center">
+            <div className="xl:absolute xl:bottom-40  lg:bottom-40 xl:left-4 bg-transparent flex-shrink-0 p-3 md:p-4">
               <CycleBurnRate tcyclesPerSecond={realTimeMetrics.tcyclesPerSecond} loading={realTimeLoading} />
             </div>
           </div>
+
+          {/* Right Section - Stats Panel */}
+          {isWide && (
+            <div className="xl:absolute xl:top-15 xl:right-10  xl:w-86 p-2 md:p-4 z-10">
+              <StatsPanel metrics={metrics} loading={loading} topCountries={topCountries} />
+            </div>
+          )}
         </div>
 
-        {/* Right Section - Stats Panel */}
-        {isWide && (
-          <div className="w-full lg:w-80 xl:w-96 p-2 md:p-4">
+        {/* If not wide, show StatsPanel below the globe */}
+        {!isWide && (
+          <div className="sm:w-full p-2 md:p-4 z-10 ">
             <StatsPanel metrics={metrics} loading={loading} topCountries={topCountries} />
           </div>
         )}
-      </div>
 
-      {/* If not wide, show StatsPanel below the globe */}
-      {!isWide && (
-        <div className="w-full p-2 md:p-4">
-          <StatsPanel metrics={metrics} loading={loading} topCountries={topCountries} />
+        {/* Bottom Metrics */}
+        <div className=" xl:absolute xl:bottom-0 xl:left-0 w-full bg-transparent z-10">
+          <BottomMetrics />
         </div>
-      )}
-
-      {/* Bottom Metrics */}
-      <div className="bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm">
-        <BottomMetrics />
       </div>
 
       {/* Subnets Table */}

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client"
 
 import { useEffect, useRef, useImperativeHandle, forwardRef } from "react"
@@ -5,6 +7,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef } from "react"
 interface EarthComponentProps {
   isMobile?: boolean
   isTablet?: boolean
+  isMedium?: boolean
   onMobileDataCenterClick?: (dataCenter: any) => void
 }
 
@@ -16,129 +19,134 @@ export interface EarthComponentRef {
 }
 
 export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>(
-  ({ isMobile, isTablet, onMobileDataCenterClick }, ref) => {
+  ({ isMobile, isTablet, isMedium, onMobileDataCenterClick }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const earthInstanceRef = useRef<any>(null)
     const isInitialized = useRef(false)
     const spritesCache = useRef<any[]>([])
 
-    // Zoom state with improved configuration
+    // base zoomState; will be kept in sync with props via effect
     const zoomState = useRef({
-      current: 1.4,
-      min: 0.8,
-      max: 8.0, // Increased max zoom for better close-up views
-      step: 1.2,
-      cameraAngleStep: 5
+      current: 1.3,
+      min: 1.3,
+      max: 1.9,
+      step: 0.2
     })
+
+    // keep zoom state in sync with breakpoint props (isMobile/isTablet/isMedium)
+    useEffect(() => {
+      const initial = isMedium ? 1 : 1.3
+      const min = isMedium ? 1 : 1.3
+      const max = isMobile ? 1.6 : isTablet ? 1.8 : isMedium ? 1.4 : 1.9
+
+      zoomState.current = {
+        current: initial,
+        min,
+        max,
+        step: 0.2
+      }
+
+      // apply immediately if earth already exists
+      if (earthInstanceRef.current) {
+        applyZoom(zoomState.current.current)
+        if (earthInstanceRef.current.update) earthInstanceRef.current.update()
+        if (earthInstanceRef.current.render) earthInstanceRef.current.render()
+      }
+    }, [isMobile, isTablet, isMedium])
 
     useImperativeHandle(ref, () => ({
       zoomIn: () => {
         if (earthInstanceRef.current) {
-          const newZoom = Math.min(zoomState.current.current * zoomState.current.step, zoomState.current.max)
+          const newZoom = Math.min(zoomState.current.current + zoomState.current.step, zoomState.current.max)
           zoomState.current.current = newZoom
-          applyZoom(newZoom, zoomState.current.cameraAngleStep)
+          applyZoom(newZoom)
         }
       },
       zoomOut: () => {
         if (earthInstanceRef.current) {
-          const newZoom = Math.max(zoomState.current.current / zoomState.current.step, zoomState.current.min)
+          const newZoom = Math.max(zoomState.current.current - zoomState.current.step, zoomState.current.min)
           zoomState.current.current = newZoom
-          applyZoom(newZoom, -zoomState.current.cameraAngleStep)
+          applyZoom(newZoom)
         }
       },
       resetZoom: () => {
         if (earthInstanceRef.current) {
-          zoomState.current.current = 1.4
-          applyZoom(1.4, 0)
+          zoomState.current.current = 1.1
+          applyZoom(1.1)
         }
       },
       getCurrentZoom: () => zoomState.current.current,
     }))
 
-    const applyZoom = (zoomLevel: number, cameraAngleAdjustment: number = 0) => {
+    const applyZoom = (zoomLevel: number) => {
       if (earthInstanceRef.current && earthInstanceRef.current.camera) {
         const baseDistance = 24
         const newDistance = baseDistance / zoomLevel
-        
-        // Apply camera distance adjustment - this is the real zoom
+
+        if (earthInstanceRef.current.orbit) {
+          earthInstanceRef.current.orbit.minDistance = 8.1
+          earthInstanceRef.current.orbit.maxDistance = 50
+        }
+
         if (earthInstanceRef.current.camera.position && earthInstanceRef.current.camera.position.setLength) {
           earthInstanceRef.current.camera.position.setLength(newDistance)
-          
-          // Apply camera angle adjustment
-          if (cameraAngleAdjustment !== 0 && earthInstanceRef.current.camera.rotation) {
-            earthInstanceRef.current.camera.rotation.x += (cameraAngleAdjustment * Math.PI) / 180
-          }
-          
-          if (earthInstanceRef.current.camera.updateProjectionMatrix) {
-            earthInstanceRef.current.camera.updateProjectionMatrix()
-          }
         }
-        
-        // REMOVED: Scene scaling that was causing sprite size issues
-        // Now only use camera distance for true zoom behavior
-        
-        // Single optimized render call
+
+        if (earthInstanceRef.current.camera.updateProjectionMatrix) {
+          earthInstanceRef.current.camera.updateProjectionMatrix()
+        }
+
+        if (earthInstanceRef.current.orbit) {
+          earthInstanceRef.current.orbit.update()
+        }
+
+        if (earthInstanceRef.current.update) {
+          earthInstanceRef.current.update()
+        }
         if (earthInstanceRef.current.render) {
           earthInstanceRef.current.render()
         }
       }
     }
 
-    // Functions to control Earth interactivity
     const disableEarthInteraction = () => {
       if (earthInstanceRef.current) {
-        // Disable auto rotation
         earthInstanceRef.current.autoRotate = false
-        
-        // Disable mouse/touch controls if available
-        if (earthInstanceRef.current.controls) {
-          earthInstanceRef.current.controls.enabled = false
-        }
-        
-        // Disable drag functionality if available
-        if (earthInstanceRef.current.enableDrag !== undefined) {
-          earthInstanceRef.current.enableDrag = false
+
+        if (earthInstanceRef.current.orbit) {
+          earthInstanceRef.current.orbit.enabled = false
         }
       }
     }
 
     const enableEarthInteraction = () => {
       if (earthInstanceRef.current) {
-        // Re-enable auto rotation
         earthInstanceRef.current.autoRotate = true
-        
-        // Re-enable mouse/touch controls if available
-        if (earthInstanceRef.current.controls) {
-          earthInstanceRef.current.controls.enabled = true
-        }
-        
-        // Re-enable drag functionality if available
-        if (earthInstanceRef.current.enableDrag !== undefined) {
-          earthInstanceRef.current.enableDrag = true
+
+        if (earthInstanceRef.current.orbit) {
+          earthInstanceRef.current.orbit.enabled = true
         }
       }
     }
 
-    // Optimized popup positioning
     const calculateSmartPopupPosition = (mouseX: number, mouseY: number, earthBounds: DOMRect) => {
       const popupWidth = 380
       const popupHeight = 500
       const margin = 20
-      
+
       const earthSectionLeft = earthBounds.left
       const earthSectionRight = earthBounds.right
       const earthSectionTop = earthBounds.top
       const earthSectionBottom = earthBounds.bottom
-      
+
       const spaceRight = earthSectionRight - mouseX
       const spaceLeft = mouseX - earthSectionLeft
       const spaceBelow = earthSectionBottom - mouseY
       const spaceAbove = mouseY - earthSectionTop
-      
+
       let left = mouseX
       let top = mouseY
-      
-      // Horizontal positioning
+
       if (spaceRight >= popupWidth + margin) {
         left = mouseX + margin
       } else if (spaceLeft >= popupWidth + margin) {
@@ -149,25 +157,23 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
           Math.min(mouseX - popupWidth / 2, earthSectionRight - popupWidth - margin)
         )
       }
-      
-      // Vertical positioning
+
       if (spaceBelow >= popupHeight + margin) {
         top = mouseY + margin
       } else if (spaceAbove >= popupHeight + margin) {
         top = mouseY - popupHeight - margin
       } else {
-        top = spaceBelow > spaceAbove 
+        top = spaceBelow > spaceAbove
           ? Math.max(mouseY - popupHeight + spaceBelow - margin, earthSectionTop + margin)
           : Math.min(mouseY - margin, earthSectionBottom - popupHeight - margin)
       }
-      
+
       left = Math.max(earthSectionLeft + margin, Math.min(left, earthSectionRight - popupWidth - margin))
       top = Math.max(earthSectionTop + margin, Math.min(top, earthSectionBottom - popupHeight - margin))
-      
+
       return { left, top }
     }
 
-    // Cursor management functions
     const setCursor = (type: 'default' | 'pointer' | 'grab') => {
       if (containerRef.current) {
         containerRef.current.style.cursor = type
@@ -199,6 +205,7 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
           await loadEarthScript()
 
           const earthDiv = document.createElement("div")
+
           earthDiv.id = "earth-container"
           earthDiv.style.width = "100%"
           earthDiv.style.height = "100%"
@@ -209,13 +216,12 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
           popup.className = "earth-popup"
           popup.innerHTML = '<div class="popup-content"></div>'
 
-          // Optimized CSS with cursor management and Earth interaction control
           const style = document.createElement("style")
           style.textContent = `
             .earth-interaction-disabled {
               pointer-events: none !important;
             }
-            
+
             .earth-interaction-disabled canvas {
               pointer-events: none !important;
               cursor: default !important;
@@ -427,142 +433,105 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
           }
 
           if ((window as any).Earth) {
-            // Simplified sizing - no unnecessary device detection
             const earthWidth = containerRef.current?.offsetWidth || window.innerWidth * 0.5
             const earthHeight = containerRef.current?.offsetHeight || window.innerHeight * 0.5
 
             const earth = new (window as any).Earth("earth-container", {
-              mapImage: "ass-16.png",
-              quality: 3, // Fixed quality for consistency
+              mapImage: "real-hologram.svg",
+              quality: 3,
               light: "none",
               autoRotate: true,
-              autoRotateSpeed: 0.8, // Reduced speed for smoother performance
-              transparent: true,
               autoRotateDelay: 100,
-              autoRotateStart: 2000,
+              autoRotateSpeed: 1.2,
+              autoRotateStart: 0,
+              //autoRotateStart: 2000,
+              transparent: true,
               width: earthWidth,
               height: earthHeight,
-              // Performance optimizations
               enableUpdate: true,
-              enableOcclusion: false, // Disable occlusion for better performance
-              enableShadow: false, // Disable shadows for better performance
+              enableOcclusion: false,
+              enableShadow: false
             })
 
             earthInstanceRef.current = earth
 
-            // Set initial cursor
             setCursor('grab')
 
-            // Apply initial zoom with performance optimization
+            // Apply initial zoom according to device type / medium
             setTimeout(() => {
-              applyZoom(1.4)
-              // Ensure Earth is properly initialized and reduce initial lag
+              if (isMedium) {
+                zoomState.current.current = 1
+                applyZoom(1)
+              } else if (isMobile || isTablet) {
+                zoomState.current.current = 1.3
+                applyZoom(1.3)
+              } else {
+                // desktop
+                zoomState.current.current = 1.3
+                applyZoom(1.3)
+              }
+
               if (earthInstanceRef.current && earthInstanceRef.current.update) {
                 earthInstanceRef.current.update()
               }
-            }, 1500) // Increased delay to ensure Earth is fully loaded
+            }, 50)
 
             const popupContent = popup.querySelector(".popup-content")
-            let currentRegion: string | null = null
+
             let currentGroupData: any[] = []
             let currentExpandedIndex = 0
             let isVisible = false
+            let hideTimer: NodeJS.Timeout | null = null
             let mouseX = 0
             let mouseY = 0
-            let hideTimer: NodeJS.Timeout | null = null
-            let isHoveringDataCenter = false
-            let isHoveringPopup = false
-            let currentHoveredSprite: any = null
             let popupPositioned = false
+            let isHoveringPopup = false
+            let isHoveringDataCenter = false
+            let currentHoveredSprite: any = null
 
             function positionPopup() {
-              if (!containerRef.current || popupPositioned) return
-              
+              if (!containerRef.current) return
               const earthBounds = containerRef.current.getBoundingClientRect()
-              const pos = calculateSmartPopupPosition(mouseX, mouseY, earthBounds)
-              
-              popup.style.left = pos.left + "px"
-              popup.style.top = pos.top + "px"
+              const { left, top } = calculateSmartPopupPosition(mouseX, mouseY, earthBounds)
+              popup.style.left = `${left}px`
+              popup.style.top = `${top}px`
               popupPositioned = true
             }
 
-            function showPopup(region: string, groupData: any[]) {
-              // Don't show desktop popup on mobile/tablet devices
-              if (isMobile || isTablet) {
-                return
-              }
-
+            function showPopup(region: string, group: any[]) {
               if (hideTimer) {
                 clearTimeout(hideTimer)
                 hideTimer = null
               }
 
-              if (isVisible && currentRegion === region) {
-                return
-              }
-
-              isHoveringDataCenter = true
-              setCursor('default')
-
-              currentRegion = region
-              currentGroupData = groupData
+              currentGroupData = group
               currentExpandedIndex = 0
+              isVisible = true
               popupPositioned = false
-
+              popup.style.display = "block"
+              popup.classList.add("visible")
               renderPopupContent()
-
-              if (!isVisible) {
-                popup.style.display = "block"
-                positionPopup()
-                requestAnimationFrame(() => {
-                  popup.classList.add("visible")
-                  isVisible = true
-                  // Disable Earth interaction after popup is shown
-                  disableEarthInteraction()
-                })
-              }
+              positionPopup()
+              disableEarthInteraction()
             }
 
             function hidePopup() {
-              if (hideTimer) clearTimeout(hideTimer)
-
+              if (hideTimer) return
               hideTimer = setTimeout(() => {
-                if (!isHoveringDataCenter && !isHoveringPopup) {
-                  popup.classList.remove("visible")
-                  setTimeout(() => {
-                    popup.style.display = "none"
-                    isVisible = false
-                    currentRegion = null
-                    isHoveringDataCenter = false
-                    isHoveringPopup = false
-                    currentHoveredSprite = null
-                    popupPositioned = false
-                    setCursor('grab')
-                    enableEarthInteraction()
-                  }, 150)
-                }
-              }, 150) // Reduced timeout for more responsive hiding
-            }
-
-            function forceHidePopup() {
-              if (hideTimer) clearTimeout(hideTimer)
-              popup.classList.remove("visible")
-              setTimeout(() => {
-                popup.style.display = "none"
                 isVisible = false
-                currentRegion = null
-                isHoveringDataCenter = false
-                isHoveringPopup = false
-                currentHoveredSprite = null
-                popupPositioned = false
-                setCursor('grab')
+                popup.style.display = "none"
+                popup.classList.remove("visible")
+
+                currentGroupData = []
+                currentExpandedIndex = -1
+                hideTimer = null
                 enableEarthInteraction()
+                setCursor('grab')
               }, 150)
             }
 
             function renderPopupContent() {
-              if (!popupContent || !currentGroupData.length) return
-
+              if (!currentGroupData.length || !popupContent) return
               const firstDC = currentGroupData[0]
               const isMultiple = currentGroupData.length > 1
 
@@ -570,8 +539,8 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
               const flagHtml = `<img src="https://flagcdn.com/w20/${countryCode}.png" alt="${countryCode} flag" onerror="this.style.display='none'; this.parentElement.innerHTML='🌍';" />`
 
               const regionParts = firstDC.region.split(",")
-              const regionDisplay = regionParts.length >= 3 
-                ? `${regionParts[0]},${regionParts[1]},${regionParts[2]}` 
+              const regionDisplay = regionParts.length >= 3
+                ? `${regionParts[0]},${regionParts[1]},${regionParts[2]}`
                 : firstDC.region
 
               let bodyHtml = ""
@@ -704,31 +673,25 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
               renderPopupContent()
             }
 
-            // Optimized mouse tracking - only for initial positioning (desktop only)
-            let mouseTrackingRAF: number | null = null
-            
-            if (!isMobile && !isTablet) {
+            // popup positioning / mouse update behavior:
+            if (!isMobile && !isTablet && !isMedium) {
               document.addEventListener("mousemove", (e) => {
                 mouseX = e.clientX
                 mouseY = e.clientY
-                
-                // Only update popup position if it's not been positioned yet
-                if (isVisible && popup.style.display === "block" && !popupPositioned && !mouseTrackingRAF) {
-                  mouseTrackingRAF = requestAnimationFrame(() => {
+
+                if (isVisible && popup.style.display === "block" && !popupPositioned) {
+                  requestAnimationFrame(() => {
                     positionPopup()
-                    mouseTrackingRAF = null
                   })
                 }
               })
             } else {
-              // For mobile/tablet, just track mouse position without popup updates
               document.addEventListener("mousemove", (e) => {
                 mouseX = e.clientX
                 mouseY = e.clientY
               })
             }
 
-            // CRITICAL FIX: Enhanced popup event handlers
             popup.addEventListener("mouseenter", () => {
               isHoveringPopup = true
               if (hideTimer) {
@@ -743,8 +706,7 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
               hidePopup()
             })
 
-            // Enhanced mouse leave detection for the entire Earth container (desktop only)
-            if (containerRef.current && !isMobile && !isTablet) {
+            if (containerRef.current && !isMobile && !isTablet && !isMedium) {
               containerRef.current.addEventListener("mouseleave", () => {
                 if (isVisible && !isHoveringPopup) {
                   isHoveringDataCenter = false
@@ -753,11 +715,9 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
               })
             }
 
-            // Global mouse move handler to detect when cursor is outside both sprite and popup areas (desktop only)
-            if (!isMobile && !isTablet) {
+            if (!isMobile && !isTablet && !isMedium) {
               document.addEventListener("mousemove", (e) => {
                 if (isVisible && !isHoveringPopup) {
-                  // Check if mouse is over the popup
                   const popupRect = popup.getBoundingClientRect()
                   const isOverPopup = (
                     e.clientX >= popupRect.left &&
@@ -773,21 +733,15 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
               })
             }
 
-            // Optimized resize handler - only reposition if needed
-            let resizeRAF: number | null = null
             window.addEventListener("resize", () => {
               if (isVisible && popup.style.display === "block") {
-                popupPositioned = false // Allow repositioning on resize
-                if (!resizeRAF) {
-                  resizeRAF = requestAnimationFrame(() => {
-                    positionPopup()
-                    resizeRAF = null
-                  })
-                }
+                popupPositioned = false
+                requestAnimationFrame(() => {
+                  positionPopup()
+                })
               }
             })
 
-            // Optimized data fetching and sprite creation
             fetch("https://ic-api.internetcomputer.org/api/v3/data-centers")
               .then((res) => res.json())
               .then((data) => {
@@ -798,35 +752,34 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
                   (regionMap[dc.region] ||= []).push(dc)
                 })
 
-                // Create sprites in batches to prevent blocking and improve performance
                 const regions = Object.keys(regionMap)
                 let currentIndex = 0
-                
+
                 const createSpriteBatch = () => {
-                  const batchSize = 3 // Reduced batch size for smoother rendering
+                  const batchSize = 3
                   const endIndex = Math.min(currentIndex + batchSize, regions.length)
-                  
+
                   for (let i = currentIndex; i < endIndex; i++) {
                     const region = regions[i]
                     const group = regionMap[region]
                     const first = group[0]
                     const isMultiple = group.length > 1
-                    const imageFile = isMultiple ? "multiple.png" : "single.png"
+                    const imageFile = isMultiple ? "real-multiple.svg" : "real-single.svg"
 
                     const sprite = earth.addSprite({
                       image: imageFile,
                       location: { lat: first.latitude, lng: first.longitude },
-                      scale: 0.6, // Fixed scale for consistency
+                      scale: 0.3,
                       opacity: 1,
                       hotspot: true,
+                      imageResolution: 512,
                     })
 
                     sprite.addEventListener("mouseover", () => {
-                      // Only show desktop popup on hover for desktop devices
                       if (isMobile || isTablet) {
                         return
                       }
-                      
+
                       if (currentHoveredSprite === sprite) return
                       currentHoveredSprite = sprite
                       isHoveringDataCenter = true
@@ -835,49 +788,44 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
                     })
 
                     sprite.addEventListener("mouseout", () => {
-                      // Only handle mouseout for desktop devices
                       if (isMobile || isTablet) {
                         return
                       }
-                      
+
                       if (currentHoveredSprite === sprite) {
                         currentHoveredSprite = null
                         isHoveringDataCenter = false
-                        // Start hide timer immediately when leaving sprite
                         if (!isHoveringPopup) {
                           setTimeout(() => {
                             if (!isHoveringDataCenter && !isHoveringPopup) {
                               hidePopup()
                             }
-                          }, 100) // Small delay to allow cursor to move to popup
+                          }, 100)
                         }
                       }
                     })
 
-                    sprite.addEventListener("click", (e) => {
-                      // Earth.js events don't have stopPropagation, so we'll handle it differently
+                    sprite.addEventListener("click", (e: Event) => {
                       if (e && typeof e.preventDefault === 'function') {
                         e.preventDefault()
                       }
-                      
-                      // Always call the mobile data center click callback
-                      // This will show the mobile bottom popup
-                      if (onMobileDataCenterClick) {
+
+                      // open mobile modal only for actual mobile/tablet (not medium)
+                      if ((isMobile || isTablet) && !isMedium && onMobileDataCenterClick) {
                         onMobileDataCenterClick(first)
                       }
                     })
 
                     spritesCache.current.push(sprite)
                   }
-                  
+
                   currentIndex = endIndex
-                  
+
                   if (currentIndex < regions.length) {
-                    // Continue with next batch using setTimeout for better performance
-                    setTimeout(createSpriteBatch, 50) // Small delay between batches
+                    setTimeout(createSpriteBatch, 50)
                   }
                 }
-                
+
                 createSpriteBatch()
               })
               .catch(console.error)
@@ -891,20 +839,18 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
       isInitialized.current = true
 
       return () => {
-        // Cleanup
         if (earthInstanceRef.current?.destroy) {
           earthInstanceRef.current.destroy()
         }
-        
-        // Clear sprites cache
+
         spritesCache.current = []
-        
+
         const popup = document.getElementById("earth-popup")
         if (popup && popup.parentNode) {
           popup.parentNode.removeChild(popup)
         }
       }
-    }, [isMobile, isTablet, onMobileDataCenterClick])
+    }, [isMobile, isTablet, isMedium, onMobileDataCenterClick])
 
     return (
       <div
@@ -913,7 +859,7 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
           width: "100%",
           height: "100%",
           minHeight: "400px",
-          cursor: "grab"
+          cursor: "default"
         }}
       />
     )
