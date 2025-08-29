@@ -822,7 +822,7 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
                   currentIndex = endIndex
 
                   if (currentIndex < regions.length) {
-                    setTimeout(createSpriteBatch, 50)
+                    setTimeout(createSpriteBatch, 1000)
                   }
                 }
 
