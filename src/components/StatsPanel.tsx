@@ -1,16 +1,73 @@
 "use client"
 
+import React from "react"
 import type { MetricsData } from "@/types"
 import Image from "next/image"
 
-function CountryFlag({ countryCode, className = "w-4 h-3" }: { countryCode: string; className?: string }) {
+type CountryFlagProps = {
+  countryCode: string
+  size?: number // desired CSS size in px (width). Height will be 3:4 unless square=true
+  square?: boolean
+  className?: string
+  alt?: string
+  lazy?: boolean
+}
+
+/**
+ * CountryFlag: retina-aware flag images from flagcdn
+ * - size: CSS width in px (default 24)
+ * - square: force square crop (object-fit: cover). Otherwise uses 4:3 ratio (width:height = 4:3)
+ *
+ * Implementation notes:
+ * - Chooses an appropriate flagcdn `wXX` source (20, 40, 80, 160) based on size * devicePixelRatio.
+ * - Supplies the chosen intrinsic width/height to next/image so it can optimize properly.
+ * - Uses inline style width/height to render at the desired CSS pixel size while underlying image is higher-res.
+ */
+function CountryFlag({
+  countryCode,
+  size = 24,
+  square = true,
+  className = "",
+  alt,
+  lazy = true,
+}: CountryFlagProps) {
+  // devicePixelRatio exists only on the client; this is a client component so it's safe.
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1
+  const desiredPx = Math.round(size * Math.max(1, dpr))
+
+  // pick a sensible base width from flagcdn that is >= desiredPx
+  // flagcdn supports many widths; we pick common steps.
+  const chooseSourceWidth = (px: number) => {
+    if (px <= 20) return 20
+    if (px <= 40) return 40
+    if (px <= 80) return 80
+    return 160
+  }
+
+  const srcWidth = chooseSourceWidth(desiredPx)
+  // native flag aspect ratio from flagcdn files is typically 4:3 (w:h = 4:3)
+  const intrinsicWidth = srcWidth
+  const intrinsicHeight = square ? srcWidth : Math.round((srcWidth * 3) / 4)
+
+  const displayHeight = square ? size : Math.round((size * 3) / 4)
+  const code = countryCode.toLowerCase()
+
+  const src = `https://flagcdn.com/w${srcWidth}/${code}.png`
+
   return (
     <Image
-      src={`https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`}
-      alt={`${countryCode} flag`}
-      width={20}
-      height={15}
-      className={`${className} object-cover flex-shrink-0 rounded-sm`}
+      src={src}
+      alt={alt ?? `${countryCode} flag`}
+      width={intrinsicWidth}
+      height={intrinsicHeight}
+      style={{
+        width: `${size}px`, // CSS size you want
+        height: `${displayHeight}px`,
+        objectFit: "cover",
+      }}
+      className={`${className} object-cover flex-shrink-0 rounded-none`}
+      loading={lazy ? "lazy" : "eager"}
+      // quality can be left default; CDN provides good PNGs. If needed, pass quality={75}
     />
   )
 }
@@ -22,16 +79,13 @@ interface StatsPanelProps {
 }
 
 export function StatsPanel({ metrics, loading, topCountries }: StatsPanelProps) {
+  const extraCount = Math.max(0, topCountries.length - 12)
+
   return (
     <div className="w-full h-full flex items-center justify-center">
       <div
         className="bg-[#231a3a] border border-slate-700 rounded-2xl p-4 text-white 
-        w-full                    /* Full width on all screens */
-        sm:w-full                 /* Full width on small screens */
-        md:w-full                 /* Full width on medium screens (fixes zoom 110%, 125%) */
-        lg:w-full                 /* Full width on large screens */
-        xl:w-96 xl:max-w-[400px]  /* Constrained width only on xl screens */
-        min-h-[350px] h-full flex flex-col mx-1 sm:mx-0"
+        w-full sm:w-full md:w-full lg:w-full xl:w-96 xl:max-w-[400px] min-h-[350px] h-full flex flex-col mx-1 sm:mx-0"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -60,7 +114,7 @@ export function StatsPanel({ metrics, loading, topCountries }: StatsPanelProps) 
         </div>
 
         {/* Divider */}
-        <div className="border-t border-slate-700 mb-4"></div>
+        <div className="border-t border-slate-700 mb-4" />
 
         {/* Subnets and Flags */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
@@ -76,18 +130,16 @@ export function StatsPanel({ metrics, loading, topCountries }: StatsPanelProps) 
           <div className="flex flex-col items-start sm:items-end">
             <div className="flex flex-row flex-wrap gap-1 mb-1 max-w-[200px] sm:max-w-none">
               {topCountries.slice(0, 12).map((country) => (
-                <CountryFlag key={country} countryCode={country} className="w-5 h-4 sm:w-6 sm:h-5" />
+                <CountryFlag key={country} countryCode={country} size={26} square className="shadow-sm" />
               ))}
             </div>
-            <span className="text-xs text-emerald-400 font-semibold">+{topCountries.length - 12}</span>
+            {extraCount > 0 && <span className="text-xs text-emerald-400 font-semibold">+{extraCount}</span>}
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-slate-700 my-4"></div>
+        <div className="border-t border-slate-700 my-4" />
 
         <div className="flex-1 flex flex-col justify-center">
-          {/* Top row - 3 columns */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="flex flex-col items-start">
               <span className="text-2xl font-bold">{loading ? "..." : metrics.totalNodes}</span>
@@ -103,7 +155,6 @@ export function StatsPanel({ metrics, loading, topCountries }: StatsPanelProps) 
             </div>
           </div>
 
-          {/* Bottom row - 3 columns centered */}
           <div className="grid grid-cols-3 gap-4 mb-2">
             <div className="flex flex-col items-start">
               <span className="text-2xl font-bold">{loading ? "..." : metrics.totalDCOwners}</span>
@@ -113,7 +164,7 @@ export function StatsPanel({ metrics, loading, topCountries }: StatsPanelProps) 
               <span className="text-2xl font-bold">{loading ? "..." : metrics.totalRegions}</span>
               <span className="text-xs text-slate-300 mt-1">Regions</span>
             </div>
-            <div></div> {/* Empty third column */}
+            <div />
           </div>
         </div>
       </div>

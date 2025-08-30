@@ -762,67 +762,93 @@ export const EarthComponent = forwardRef<EarthComponentRef, EarthComponentProps>
                   for (let i = currentIndex; i < endIndex; i++) {
                     const region = regions[i]
                     const group = regionMap[region]
-                    const first = group[0]
-                    const isMultiple = group.length > 1
+                    const first = group && group[0]
+                    const isMultiple = group && group.length > 1
                     const imageFile = isMultiple ? "real-multiple.svg" : "real-single.svg"
 
-                    const sprite = earth.addSprite({
-                      image: imageFile,
-                      location: { lat: first.latitude, lng: first.longitude },
-                      scale: 0.3,
-                      opacity: 1,
-                      hotspot: true,
-                      imageResolution: 512,
-                    })
+                    // Safety checks: skip if required attributes missing or invalid
+                    const hasValidGroup = Array.isArray(group) && group.length > 0
+                    const lat = first?.latitude
+                    const lng = first?.longitude
+                    const hasValidLatLng = typeof lat === "number" && isFinite(lat) && !Number.isNaN(lat) &&
+                                           typeof lng === "number" && isFinite(lng) && !Number.isNaN(lng)
+                    const hasValidImage = typeof imageFile === "string" && imageFile.length > 0
+                    const earthAvailable = earth && typeof earth.addSprite === "function"
 
-                    sprite.addEventListener("mouseover", () => {
-                      if (isMobile || isTablet) {
-                        return
+                    if (!hasValidGroup || !hasValidLatLng || !hasValidImage || !earthAvailable) {
+                      // skip this entry quietly (or log for debugging)
+                      // console.warn(`Skipping region "${region}" - invalid data or earth not ready`, { first })
+                      continue
+                    }
+
+                    try {
+                      const sprite = earth.addSprite({
+                        image: imageFile,
+                        location: { lat: first.latitude, lng: first.longitude },
+                        scale: 0.3,
+                        opacity: 1,
+                        hotspot: true,
+                        imageResolution: 512,
+                      })
+
+                      if (!sprite) {
+                        // if addSprite returned falsy, skip binding events
+                        continue
                       }
 
-                      if (currentHoveredSprite === sprite) return
-                      currentHoveredSprite = sprite
-                      isHoveringDataCenter = true
-                      setCursor('default')
-                      showPopup(region, group)
-                    })
-
-                    sprite.addEventListener("mouseout", () => {
-                      if (isMobile || isTablet) {
-                        return
-                      }
-
-                      if (currentHoveredSprite === sprite) {
-                        currentHoveredSprite = null
-                        isHoveringDataCenter = false
-                        if (!isHoveringPopup) {
-                          setTimeout(() => {
-                            if (!isHoveringDataCenter && !isHoveringPopup) {
-                              hidePopup()
-                            }
-                          }, 100)
+                      sprite.addEventListener("mouseover", () => {
+                        if (isMobile || isTablet) {
+                          return
                         }
-                      }
-                    })
 
-                    sprite.addEventListener("click", (e: Event) => {
-                      if (e && typeof e.preventDefault === 'function') {
-                        e.preventDefault()
-                      }
+                        if (currentHoveredSprite === sprite) return
+                        currentHoveredSprite = sprite
+                        isHoveringDataCenter = true
+                        setCursor('default')
+                        showPopup(region, group)
+                      })
 
-                      // open mobile modal only for actual mobile/tablet (not medium)
-                      if ((isMobile || isTablet) && !isMedium && onMobileDataCenterClick) {
-                        onMobileDataCenterClick(first)
-                      }
-                    })
+                      sprite.addEventListener("mouseout", () => {
+                        if (isMobile || isTablet) {
+                          return
+                        }
 
-                    spritesCache.current.push(sprite)
+                        if (currentHoveredSprite === sprite) {
+                          currentHoveredSprite = null
+                          isHoveringDataCenter = false
+                          if (!isHoveringPopup) {
+                            setTimeout(() => {
+                              if (!isHoveringDataCenter && !isHoveringPopup) {
+                                hidePopup()
+                              }
+                            }, 100)
+                          }
+                        }
+                      })
+
+                      sprite.addEventListener("click", (e: Event) => {
+                        if (e && typeof e.preventDefault === 'function') {
+                          e.preventDefault()
+                        }
+
+                        // open mobile modal only for actual mobile/tablet (not medium)
+                        if ((isMobile || isTablet) && !isMedium && onMobileDataCenterClick) {
+                          onMobileDataCenterClick(first)
+                        }
+                      })
+
+                      spritesCache.current.push(sprite)
+                    } catch (err) {
+                      // If sprite creation or event binding fails for this entry, skip it
+                      console.error("Failed to create or bind sprite for region", region, err)
+                      continue
+                    }
                   }
 
                   currentIndex = endIndex
 
                   if (currentIndex < regions.length) {
-                    setTimeout(createSpriteBatch, 1000)
+                    setTimeout(createSpriteBatch, 50)
                   }
                 }
 
