@@ -46,10 +46,21 @@ public/css/
 
 # Specific files ignore by me 
 API-testing.py
+API-keys.txt
+src/Future-work.txt
 
+src/components/tempcomponent.tsx
+
+ars.txt
 #Don't use components
 
 src/components/Not-used-components
+
+
+#Don't add below folders
+
+src/experi/
+
 
 # Ignore node package-lock json as you have package-lock.json in your repo
 # but if you want, can also ignore pnpm-lock.yaml, yarn.lock if used

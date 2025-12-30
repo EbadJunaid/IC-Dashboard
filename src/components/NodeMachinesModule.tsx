@@ -57,7 +57,6 @@ export function NodeMachinesModule() {
         }
 
         const data = await response.json()
-        console.log("Total nodes API response:", data) // Debug log
 
         // Fix: Use 'count' instead of 'total_nodes'
         const total = data?.count || 1621 // Fallback to 1621 if API fails
@@ -163,7 +162,6 @@ export function NodeMachinesModule() {
       }
 
       const data = await response.json()
-      console.log("Chart data API response:", data) // Debug log
 
       // Fix: Better validation and handling of chart data
       if (data && data.total_nodes && Array.isArray(data.total_nodes) && data.total_nodes.length > 0) {

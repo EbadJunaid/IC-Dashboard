@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Search, Sun, Moon, Menu, Command } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { Button } from "@/components/ui/button"
 import { SearchModal } from "./SearchModal"
 import { MobileMenu } from "./MobileMenu"
 
@@ -29,30 +29,30 @@ export function Header() {
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark")
+      document.body.classList.add("dark")
     } else {
       document.documentElement.classList.remove("dark")
+      document.body.classList.remove("dark")
     }
   }, [isDark])
 
   return (
     <>
-      <header className="bg-gray-900/70 backdrop-blur-md border-b border-gray-700/50 px-4 md:px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4 md:space-x-8">
-            <div className="flex items-center space-x-2">
-              {/* Logo SVG */}
-              <Image
-                src="/images.svg"
-                alt="Logo"
-                width={32}
-                height={32}
-                className="w-6 h-6 md:w-8 md:h-8 rounded-lg shadow-lg"
-                priority
-              />
-              <span className="text-white font-semibold text-sm md:text-base">ICP DASHBOARD</span>
-            </div>
+      {/* <header className="bg-transparent backdrop-blur-sm border-b border-gray-700/20 px-4 md:px-6 py-4 relative z-50"> */}
+        <header className="bg-transparent px-4 md:px-6 py-4 ">
 
-            <nav className="hidden lg:flex items-center space-x-6">
+        <div className="flex items-center justify-between ">
+          <div className="flex items-center space-x-4 md:space-x-8  w-full">
+            <div className="flex items-center space-x-2 ">
+              {/* Replace this div with your custom logo */}
+              <div className="w-6 h-6 md:w-8 md:h-8  flex items-center justify-center shadow-lg">
+               <Image src="/images.svg" alt="Logo" width={32} height={32} className="w-full h-full" />
+                {/* <span className="text-white font-bold text-xs md:text-sm">IC</span> */}
+              </div>
+              <span className="text-white font-semibold text-sm md:text-base">DASHBOARD</span>
+            </div>
+          
+            <nav className="hidden lg:flex items-right justify-end mr-10 lg:w-full space-x-6 ">
               <a href="#" className="text-white hover:text-indigo-400 transition-colors text-sm">
                 Network
               </a>

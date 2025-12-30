@@ -8,6 +8,8 @@ export interface DataCenter {
   region: string
   total_nodes: number
   total_replica_nodes: number
+  total_api_boundary_nodes:number
+  subnets:number
 }
 
 export interface CountryFeature {
