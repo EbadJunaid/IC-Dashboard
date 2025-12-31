@@ -1,32 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Internet Computer Dashboard Clone
 
-## Getting Started
+A pixel-perfect clone of the [Internet Computer (ICP) Dashboard](https://dashboard.internetcomputer.org) homepage. This project replicates the UI/UX, responsiveness, and design system of the original site, featuring **real-time data** powered by official ICP APIs.
 
-First, run the development server:
+![Dashboard Demo](./public/recordings/recording-2x.gif)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+<br>
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ⚡ Real-Time Data Integration
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This dashboard is not just a static UI. It fetches live blockchain data using the official **Internet Computer Dashboard APIs**:
+* **Source:** [ICP Dashboard API Reference](https://docs.internetcomputer.org/references/dashboard-apis)
+* **Implementation:** Fetches real-time stats for blocks, transactions, and network status directly from the IC network.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+<br>
 
-## Learn More
+## 🛠 Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework:** [Next.js 15](https://nextjs.org/) (App Router)
+- **Core:** [React 19](https://react.dev/) & [TypeScript](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/) & [Tailwind Animate](https://github.com/jamiebuilds/tailwindcss-animate)
+- **Visualization:** [Recharts](https://recharts.org/) (Charts) & [Three.js / Fiber](https://docs.pmnd.rs/react-three-fiber) (3D Elements)
+- **Icons:** [Lucide React](https://lucide.dev/)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+<br>
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚀 Getting Started
 
-## Making Arslan as collaborator
+Follow these steps to run the project locally.
+
+### Prerequisites
+Ensure you have **Node.js 18+** installed.
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/EbadJunaid/IC-Dashboard/
+   cd ic-dashboard
+2. Install dependencies
+    ```bash 
+    npm install
+3. Start the development server
+    ```bash 
+    npm run dev
+4.  Open your browser Navigate to http://localhost:3000
+
+<br>
+
+### 📂 Project Structure
+
+``` bash 
+.
+├── public/                  
+├── src
+│   ├── app/                 
+│   ├── components/
+│   │   ├── ui/              
+│   │   ├── EarthComponent   
+│   │   ├── StatsPanel       
+│   │   ├── MetricCard       
+│   │   ├── CycleBurnRate    
+│   │   └── ...              
+│   ├── hooks/               
+│   ├── lib/                 
+│   └── types/               
+├── next.config.ts           
+├── tailwind.config.js       
+└── package.json   
+```          
+
+
+### 📄 License
+Distributed under the MIT License.
